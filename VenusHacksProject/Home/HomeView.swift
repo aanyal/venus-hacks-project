@@ -44,10 +44,20 @@ struct HomeView: View {
                         .padding(.bottom, 24)
 
                     contentStack
-                        .padding(.bottom, 42)
+                        .padding(.bottom, 52)
                 }
                 .padding(.horizontal, 20)
             }
+        }
+        .task {
+            await state.prepareHealthData()
+        }
+        .onAppear {
+            guard state.hasConnectedToHealthKit else { return }
+            Task { await state.reloadHealthDataIfConnected() }
+        }
+        .refreshable {
+            await state.refreshHealthData()
         }
     }
 
@@ -139,7 +149,7 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 18) {
             appointmentCard
             statsSection
-            guidanceCard
+            activityRingsSection
             DisclaimerFooter()
                 .padding(.top, 2)
         }
@@ -190,6 +200,32 @@ struct HomeView: View {
         return "Next step: Keep track of any new symptoms, bring questions to your next visit, and use your feed to build confidence before check-ins."
     }
 
+    private var activityRingsSection: some View {
+        let metrics = state.healthMetrics
+
+        return frostedCard {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    sectionLabel("Activity Rings")
+
+                    Text(
+                        metrics.hasConnectedHealthKit
+                            ? "Your Move, Exercise, and Stand progress from Apple Health."
+                            : "Connect Apple Health to see your activity rings."
+                    )
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(Color.homeMuted)
+                    .lineSpacing(3)
+                }
+
+                ActivityRingsView(
+                    rings: metrics.displayActivityRings,
+                    isConnected: metrics.hasConnectedHealthKit
+                )
+            }
+        }
+    }
+
     private var guidanceCard: some View {
         frostedCard {
             VStack(alignment: .leading, spacing: 14) {
@@ -221,19 +257,74 @@ struct HomeView: View {
     }
 
     private var statsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let metrics = state.healthMetrics
+
+        return VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 sectionLabel("Daily Snapshot")
 
-                Text("Sample data for the demo experience. Not a diagnosis.")
+                Text(metrics.snapshotCaption)
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(Color.homeMuted)
+                    .lineSpacing(3)
+
+                if state.isRefreshingHealthData {
+                    ProgressView()
+                        .tint(Color.homeRose)
+                        .padding(.top, 4)
+                }
             }
 
+            if metrics.isAvailable, !metrics.hasConnectedHealthKit {
+                Button {
+                    Task { await state.prepareHealthData() }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "heart.text.square.fill")
+                        Text("Connect Apple Health")
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        Capsule()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.homeRose, .homeRoseHi],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+
+            guidanceCard
+
             LazyVGrid(columns: statColumns, spacing: 12) {
-                statCard(symbol: "figure.walk", label: "Steps", value: "7,843", color: .homeTeal, progress: 0.78)
-                statCard(symbol: "heart.text.square", label: "Heart Rate", value: "72 BPM", color: .homeRose, progress: 0.72)
-                statCard(symbol: "moon.stars", label: "Sleep", value: "7.2 H", color: .homeLavender, progress: 0.85)
+                statCard(
+                    symbol: "heart.text.square",
+                    label: "Heart Rate",
+                    value: metrics.heartRateDisplay,
+                    color: .homeRose,
+                    progress: metrics.heartRateProgress
+                )
+                statCard(
+                    symbol: "figure.walk",
+                    label: "Steps",
+                    value: metrics.stepsDisplay,
+                    color: .homeTeal,
+                    progress: metrics.stepsProgress
+                )
+                statCard(
+                    symbol: "moon.stars",
+                    label: "Sleep",
+                    value: metrics.sleepDisplay,
+                    color: .homeLavender,
+                    progress: metrics.sleepProgress
+                )
             }
         }
     }
