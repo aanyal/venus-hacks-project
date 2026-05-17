@@ -22,10 +22,6 @@ struct AdvocacyView: View {
     @Bindable var state: AppState
     @State private var animateListening = false
 
-    private var advocateTopics: [AdvocateFocus] {
-        Personalization.advocateFocus(for: state.profile)
-    }
-
     private var questions: [String] {
         Personalization.practiceQuestions(for: state.profile)
     }
@@ -110,53 +106,10 @@ struct AdvocacyView: View {
 
     private var contentStack: some View {
         VStack(alignment: .leading, spacing: 18) {
-            guidanceCard
-            questionCard
             simulatorCard
+            questionCard
             DisclaimerFooter()
                 .padding(.top, 2)
-        }
-    }
-
-    private var guidanceCard: some View {
-        frostedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                cardLabel("What To Advocate For")
-
-                Text(Personalization.advocacySummary(for: state.profile))
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(Color.advocacyBody)
-                    .lineSpacing(5)
-
-                VStack(spacing: 12) {
-                    ForEach(Array(advocateTopics.enumerated()), id: \.element.id) { index, topic in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: focusSymbol(for: index))
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(Color.advocacyRose)
-                                .frame(width: 30, height: 30)
-                                .background(Color.white.opacity(0.28))
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(topic.title)
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Color.advocacyInk)
-
-                                Text(topic.detail)
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundStyle(Color.advocacyMuted)
-                                    .lineSpacing(3)
-                            }
-                        }
-                    }
-                }
-
-                Text(Personalization.advocacyNextStep(for: state.profile))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.advocacyMuted)
-                    .lineSpacing(4)
-            }
         }
     }
 
@@ -215,7 +168,7 @@ struct AdvocacyView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             cardLabel("Practice With AI")
 
-                            Text("Doctor simulator")
+                            Text("Doctor Simulator")
                                 .font(.system(size: 24, weight: .semibold, design: .serif))
                                 .foregroundStyle(Color.advocacyInk)
 
@@ -561,22 +514,11 @@ struct AdvocacyView: View {
         if state.isAwaitingPracticeReply {
             return "Thinking"
         }
-        return state.liveAIEnabled ? "Live AI" : "Setup Needed"
+        return state.liveAIEnabled ? "Groq Live" : "Setup Needed"
     }
 
     private var statusIsEmphasized: Bool {
         state.recording || state.isAwaitingPracticeReply
-    }
-
-    private func focusSymbol(for index: Int) -> String {
-        let symbols = [
-            "heart.text.square",
-            "bell.badge",
-            "waveform.path.ecg",
-            "cross.case",
-            "doc.text",
-        ]
-        return symbols[min(index, symbols.count - 1)]
     }
 
     private func cardLabel(_ text: String) -> some View {

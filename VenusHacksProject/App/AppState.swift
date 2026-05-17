@@ -73,7 +73,7 @@ final class AppState {
         recording = false
         practiceTurnCount = 0
         isAwaitingPracticeReply = false
-        practiceStatusMessage = liveAIEnabled ? "Live AI ready." : "Live AI not configured."
+        practiceStatusMessage = liveAIEnabled ? "Groq ready." : "Groq not configured."
         speechVoiceDescription = speechPlaybackService.selectedVoiceDescription
         speechPlaybackService.stop()
         speechTranscriptionService.cancel()
@@ -115,7 +115,7 @@ final class AppState {
                     preferStrongerResponse: strongerResponseRequested
                 )
                 messages.append(.init(role: "ai", text: reply))
-                practiceStatusMessage = "Live AI ready."
+                practiceStatusMessage = "Groq ready."
                 speechPlaybackService.speak(reply)
                 speechVoiceDescription = speechPlaybackService.selectedVoiceDescription
             } catch {
@@ -135,7 +135,7 @@ final class AppState {
                         text: "Note: \(error.localizedDescription)"
                     )
                 )
-                practiceStatusMessage = liveAIEnabled ? "Using fallback reply." : "Live AI not configured."
+                practiceStatusMessage = liveAIEnabled ? "Using fallback reply." : "Groq not configured."
             }
             isAwaitingPracticeReply = false
         }

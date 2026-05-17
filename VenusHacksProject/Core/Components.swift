@@ -131,37 +131,75 @@ struct PrivacyBadge: View {
 struct BottomNav: View {
     @Binding var tab: Int
     private let items = [
-        (0, "Home", "heart.text.square"),
-        (1, "Reels", "play.rectangle"),
         (2, "Advocacy", "megaphone"),
+        (1, "Reels", "play.rectangle"),
+        (0, "Home", "heart.text.square"),
         (3, "Roadmap", "map"),
         (4, "Community", "person.2"),
     ]
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             ForEach(items, id: \.0) { id, label, icon in
-                Button { tab = id } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: icon)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(tab == id ? .white : DS.textM)
-                            .frame(width: 36, height: 36)
-                            .background(tab == id ? DS.hotPink : .clear)
-                            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
-                        Text(label)
-                            .font(.dsSans(DS.FontSize.xs, weight: .bold))
-                            .foregroundStyle(tab == id ? DS.textH : DS.textM)
+                let isSelected = tab == id
+
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+                        tab = id
                     }
+                } label: {
+                    VStack(spacing: 6) {
+                        Image(systemName: icon)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(isSelected ? Color.white : DS.textB.opacity(0.72))
+                            .frame(width: 34, height: 34)
+                            .background {
+                                if isSelected {
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [DS.hotPink, DS.pink2],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .shadow(color: DS.hotPink.opacity(0.22), radius: 12, y: 6)
+                                }
+                            }
+
+                        Text(label)
+                            .font(.system(size: 11, weight: .medium, design: .serif))
+                            .foregroundStyle(isSelected ? DS.textH : DS.textB.opacity(0.72))
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
                 .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
             }
         }
-        .padding(.top, 10)
-        .padding(.bottom, 12)
-        .background(DS.navBg)
-        .overlay(alignment: .top) { Rectangle().fill(DS.border).frame(height: 1) }
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+        .background {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.82), DS.border.opacity(0.35)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.1
+                        )
+                )
+                .shadow(color: DS.hotPink.opacity(0.12), radius: 20, y: 8)
+                .shadow(color: Color.black.opacity(0.04), radius: 6, y: 3)
+        }
+        .padding(.horizontal, 18)
+        .padding(.bottom, 10)
     }
 }
 
