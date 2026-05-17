@@ -139,7 +139,7 @@ struct BottomNav: View {
     ]
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             ForEach(items, id: \.0) { id, label, icon in
                 let isSelected = tab == id
 
@@ -148,14 +148,14 @@ struct BottomNav: View {
                         tab = id
                     }
                 } label: {
-                    VStack(spacing: 6) {
+                    VStack(spacing: 4) {
                         Image(systemName: icon)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(isSelected ? Color.white : DS.textB.opacity(0.72))
-                            .frame(width: 34, height: 34)
+                            .frame(width: 30, height: 30)
                             .background {
                                 if isSelected {
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    RoundedRectangle(cornerRadius: 11, style: .continuous)
                                         .fill(
                                             LinearGradient(
                                                 colors: [DS.hotPink, DS.pink2],
@@ -168,24 +168,25 @@ struct BottomNav: View {
                             }
 
                         Text(label)
-                            .font(.system(size: 11, weight: .medium, design: .serif))
+                            .font(.system(size: 9, weight: .semibold))
+                            .tracking(1.2)
                             .foregroundStyle(isSelected ? DS.textH : DS.textB.opacity(0.72))
                             .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 5)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 12)
+        .padding(.top, 9)
+        .padding(.bottom, 10)
         .background {
-            RoundedRectangle(cornerRadius: 28, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: [Color.white.opacity(0.82), DS.border.opacity(0.35)],
@@ -199,7 +200,7 @@ struct BottomNav: View {
                 .shadow(color: Color.black.opacity(0.04), radius: 6, y: 3)
         }
         .padding(.horizontal, 18)
-        .padding(.bottom, 10)
+        .padding(.bottom, 8)
     }
 }
 

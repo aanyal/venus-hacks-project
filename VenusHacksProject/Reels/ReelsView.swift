@@ -172,11 +172,9 @@ struct ReelsView: View {
                 .overlay(Capsule().stroke(.white.opacity(0.25), lineWidth: 1))
             }
 
-            Text(reel.emoji)
-                .font(.system(size: 44))
-
             Text(reel.title)
-                .font(.system(size: 24, weight: .semibold, design: .serif))
+                .font(.system(size: 20, weight: .semibold))
+                .tracking(1.0)
                 .foregroundStyle(.white)
                 .lineSpacing(3)
                 .shadow(color: .black.opacity(0.25), radius: 4, y: 2)

@@ -172,29 +172,6 @@ struct HomeView: View {
                         .lineSpacing(3)
                 }
 
-                Button(action: {}) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("Schedule Now")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.homeRose, .homeRoseHi],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-                    .shadow(color: Color.homeRose.opacity(0.22), radius: 10, y: 5)
-                }
-                .buttonStyle(.plain)
             }
         }
     }
