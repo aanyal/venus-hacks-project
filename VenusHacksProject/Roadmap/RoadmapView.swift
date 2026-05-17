@@ -95,7 +95,7 @@ struct RoadmapView: View {
                     updateButton
                         .padding(.horizontal, 20)
                         .padding(.top, 26)
-                        .padding(.bottom, 52)
+                        .padding(.bottom, 132)
                 }
             }
         }

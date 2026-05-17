@@ -82,7 +82,7 @@ struct ReelsView: View {
                 reelActions
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(.trailing, 16)
-                    .padding(.bottom, 44)
+                    .padding(.bottom, 116)
 
                 VStack(alignment: .leading, spacing: 0) {
                     Spacer()
@@ -91,7 +91,7 @@ struct ReelsView: View {
                         Spacer(minLength: 64)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 108)
                 }
             }
         }
