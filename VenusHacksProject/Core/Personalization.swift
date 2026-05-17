@@ -63,7 +63,7 @@ enum Personalization {
         switch level {
         case .general: return "Preventive check-in reminder"
         case .heartAware: return "Cardiology check-up may be helpful"
-        case .higherAttention: return "Cardiology check-up due soon"
+        case .higherAttention: return "Cardiology check-up due soon."
         }
     }
 
@@ -98,6 +98,120 @@ enum Personalization {
         }
         qs.append("When should I check cholesterol, blood pressure, or blood sugar again?")
         return qs
+    }
+
+    static func advocacySummary(for profile: UserProfile) -> String {
+        let level = awarenessLevel(for: profile)
+        switch level {
+        case .general:
+            return "Bring clear questions, ask what symptoms should not be ignored, and leave visits knowing what follow-up matters most."
+        case .heartAware, .higherAttention:
+            return "Focus on symptom escalation, heart testing, medication review, and what changes should prompt urgent follow-up."
+        }
+    }
+
+    static func advocacyNextStep(for profile: UserProfile) -> String {
+        if awarenessLevel(for: profile) == .general {
+            return "Save one or two exact questions now so you can use them at your next appointment without rewriting them under stress."
+        }
+        return "Practice a calm response in case symptoms are dismissed, and ask what should be ruled out before you leave the visit."
+    }
+
+    static func practiceOpening(for scenario: PracticeScenario, profile: UserProfile) -> String {
+        switch scenario {
+        case .generalVisit:
+            return "Hello, I’m your practice doctor. Tell me what you want to cover today, and I’ll respond like a realistic appointment conversation."
+        case .dismissedSymptoms:
+            return "Hello, I’m your practice doctor. I understand you have some health concerns today. Tell me what has been going on."
+        case .followUpQuestions:
+            return "We have reviewed the basics today. What follow-up questions do you want to ask before the visit ends?"
+        }
+    }
+
+    static func practiceTranscriptDraft(for scenario: PracticeScenario, profile: UserProfile) -> String {
+        switch scenario {
+        case .generalVisit:
+            return "I want to understand what symptoms I should watch closely and when I should call."
+        case .dismissedSymptoms:
+            return "I understand stress can affect symptoms, but because of my history I want to discuss what we should rule out."
+        case .followUpQuestions:
+            return "Before I leave, can we review what follow-up testing or monitoring would make sense for me?"
+        }
+    }
+
+    static func strongerPracticeResponse(for profile: UserProfile) -> String {
+        if awarenessLevel(for: profile) == .general {
+            return "I understand, but I still want to be clear on what symptoms should not be ignored and when I should seek urgent care."
+        }
+        return "I understand stress can play a role, but because of my history and symptoms I’d like to discuss what we should rule out and when I should seek urgent care."
+    }
+
+    static func simulatedDoctorReply(
+        for text: String,
+        profile: UserProfile,
+        scenario: PracticeScenario,
+        turnCount: Int,
+        preferStrongerResponse: Bool
+    ) -> String {
+        let lower = text.lowercased()
+
+        if preferStrongerResponse {
+            return aiReply(for: "stress dismiss", profile: profile)
+        }
+
+        switch scenario {
+        case .dismissedSymptoms:
+            let strongAdvocacySignals = [
+                "rule out",
+                "urgent",
+                "history",
+                "not comfortable",
+                "chest",
+                "shortness of breath",
+                "severe",
+                "worse",
+                "persistent",
+            ]
+            let strongSignalCount = strongAdvocacySignals.reduce(into: 0) { count, phrase in
+                if lower.contains(phrase) { count += 1 }
+            }
+
+            if turnCount <= 1 {
+                if strongSignalCount >= 2 {
+                    return "I understand you are concerned, but this may still be something like stress, recovery, or a milder issue at first. Tell me what feels most different and what you want to make sure we do not overlook."
+                }
+                return "At first glance this may still be stress, routine recovery, or something we monitor before escalating. What feels most concerning to you right now?"
+            }
+
+            if turnCount == 2 {
+                if strongSignalCount >= 2 {
+                    return "I hear that you want to press on this. If this feels outside your usual pattern, a reasonable next step is asking what should be ruled out and what symptoms should prompt urgent follow-up."
+                }
+                return "It may still be reasonable to monitor this first, but I can see you are still concerned. What specifically worries you most, and what are you hoping we clarify today?"
+            }
+
+            if strongSignalCount >= 2 {
+                return "I understand why you want to press on this. A strong next step would be asking what needs to be ruled out, what symptoms should prompt urgent follow-up, and whether any further evaluation is appropriate today."
+            }
+
+            if strongSignalCount == 1 {
+                return "It may still be stress, recovery, or something we can monitor, but I hear that you are concerned. What feels most different from your usual pattern, and what are you most worried we might miss?"
+            }
+            return "This may still be stress, routine recovery, or something to monitor first. Can you tell me what feels most concerning and why you feel it needs more discussion today?"
+        case .followUpQuestions:
+            if lower.contains("test") || lower.contains("monitor") || lower.contains("follow-up") || lower.contains("records") {
+                return "Good follow-up question. Ask for the timeline, what the result would change, and whether you should keep copies of records or imaging."
+            }
+            return "Before the visit ends, try asking for a concrete plan: what happens next, when to follow up, and what should prompt a sooner call."
+        case .generalVisit:
+            if lower.contains("plain language") || lower.contains("explain") {
+                return "That is a useful question. A strong next step is asking them to explain the result in plain language and what it means for you specifically."
+            }
+            if lower.contains("blood pressure") || lower.contains("cholesterol") || lower.contains("blood sugar") {
+                return "That is appropriate preventive advocacy. Make sure you also ask when those checks should happen again and what numbers matter most."
+            }
+            return aiReply(for: text, profile: profile)
+        }
     }
 
     static func aiReply(for text: String, profile: UserProfile) -> String {
