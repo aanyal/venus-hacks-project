@@ -2,16 +2,17 @@
 //  ReelsView.swift
 //  VenusHacksProject
 //
-//  UI from origin/main · feed logic from PersonalizedLineSeedData + PersonalizationProfile
-//
 
 import SwiftUI
+import AVKit
 
 struct ReelsView: View {
     private let maxVisibleDots = 5
 
     @Bindable var state: AppState
     @State private var showShareSheet = false
+    @State private var player: AVPlayer? = nil
+    @State private var loopObserver: NSObjectProtocol? = nil
 
     private var profile: PersonalizationProfile { state.personalizationProfile }
 
@@ -31,7 +32,6 @@ struct ReelsView: View {
         return reels[index]
     }
 
-    /// Up to 5 dots; slides with the current reel when there are more items.
     private var visibleDotIndices: [Int] {
         let count = reels.count
         guard count > 0 else { return [] }
@@ -54,6 +54,8 @@ struct ReelsView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
+
+                // Gradient background — shows on reels with no video
                 LinearGradient(
                     colors: [Color(hex: reel.grad[0]), Color(hex: reel.grad[1])],
                     startPoint: .topLeading,
@@ -62,14 +64,22 @@ struct ReelsView: View {
                 .ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.45), value: state.currentReelIndex)
 
+                // Fullscreen video — no controls, fills screen like Reels
+                if let player = player {
+                    PlayerView(player: player)
+                        .ignoresSafeArea()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                }
+
                 Circle()
                     .fill(.white.opacity(0.12))
                     .frame(width: 220, height: 220)
                     .blur(radius: 60)
                     .offset(x: geo.size.width * 0.35, y: -geo.size.height * 0.20)
 
+                // Dark overlay so text stays readable over video
                 LinearGradient(
-                    colors: [.clear, .clear, .black.opacity(0.55)],
+                    colors: [.clear, .clear, .black.opacity(0.65)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -94,6 +104,15 @@ struct ReelsView: View {
                     .padding(.bottom, 108)
                 }
             }
+        }
+        .onAppear {
+            setupPlayer(for: reel)
+        }
+        .onDisappear {
+            teardownPlayer()
+        }
+        .onChange(of: state.currentReelIndex) { _, _ in
+            setupPlayer(for: reel)
         }
         .gesture(
             DragGesture(minimumDistance: 40)
@@ -120,6 +139,42 @@ struct ReelsView: View {
         }
         .onChange(of: profile) { _, _ in
             state.currentReelIndex = 0
+        }
+    }
+
+    // MARK: - Player Setup
+
+    private func setupPlayer(for reel: PersonalizedReelPresentation) {
+        teardownPlayer()
+
+        guard let url = reel.videoURL else {
+            player = nil
+            return
+        }
+
+        let newPlayer = AVPlayer(url: url)
+        newPlayer.isMuted = true
+        newPlayer.automaticallyWaitsToMinimizeStalling = false
+        player = newPlayer
+        newPlayer.play()
+
+        // Loop video continuously
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: newPlayer.currentItem,
+            queue: .main
+        ) { _ in
+            newPlayer.seek(to: .zero)
+            newPlayer.play()
+        }
+    }
+
+    private func teardownPlayer() {
+        player?.pause()
+        player = nil
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
         }
     }
 
