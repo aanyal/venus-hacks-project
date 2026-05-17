@@ -43,9 +43,9 @@ enum ReelsPersonalization {
                 score: scoreLine(line, for: profile)
             )
             if index == 0 {
-                presentation.videoURL = URL(string: "https://www.w3schools.com/html/mov_bbb.mp4")
-            } else if index == 2 {
-                presentation.videoURL = URL(string: "https://www.w3schools.com/html/movie.mp4")
+               presentation.videoURL = Bundle.main.url(forResource: "testvidheart", withExtension: "MP4")
+            }else if index == 1 {
+                presentation.videoURL = Bundle.main.url(forResource: "pree", withExtension: "mp4")
             }
             return presentation
         }
