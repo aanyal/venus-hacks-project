@@ -25,7 +25,6 @@ enum ReelsPersonalization {
             .map(\.line)
     }
 
-    /// Includes scored matches plus broadly applicable education for the user's stage.
     private static func isRelevant(_ line: PersonalizedLine, score: Int, profile: PersonalizationProfile) -> Bool {
         if score > 0 { return true }
         if line.riskGroups.contains("general") { return true }
@@ -37,12 +36,18 @@ enum ReelsPersonalization {
     static func presentations(
         for profile: PersonalizationProfile
     ) -> [PersonalizedReelPresentation] {
-        recommendedLines(for: profile).map { line in
-            PersonalizedReelPresentation(
+        recommendedLines(for: profile).enumerated().map { index, line in
+            var presentation = PersonalizedReelPresentation(
                 line: line,
                 matchReason: matchReason(for: line, profile: profile),
                 score: scoreLine(line, for: profile)
             )
+            if index == 0 {
+                presentation.videoURL = URL(string: "https://www.w3schools.com/html/mov_bbb.mp4")
+            } else if index == 2 {
+                presentation.videoURL = URL(string: "https://www.w3schools.com/html/movie.mp4")
+            }
+            return presentation
         }
     }
 
@@ -85,12 +90,13 @@ enum ReelsPersonalization {
     }
 }
 
-// MARK: - UI presentation model (main Reels UI fields)
+// MARK: - UI presentation model
 
 struct PersonalizedReelPresentation: Identifiable {
     let line: PersonalizedLine
     let matchReason: String
     let score: Int
+    var videoURL: URL? = nil
 
     var id: String { line.id }
     var grad: [String] { line.gradient }
