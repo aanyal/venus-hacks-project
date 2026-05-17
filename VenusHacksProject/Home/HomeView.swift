@@ -153,7 +153,6 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 18) {
             appointmentCard
             statsSection
-            activityRingsSection
             summaryCard
             heartHealthCard
             nextStepsCard
@@ -204,32 +203,6 @@ struct HomeView: View {
             return "Next step: Review any new or worsening symptoms, and contact your care team or seek urgent care if symptoms feel severe, sudden, or pressing."
         }
         return "Next step: Keep track of any new symptoms, bring questions to your next visit, and use your feed to build confidence before check-ins."
-    }
-
-    private var activityRingsSection: some View {
-        let metrics = state.healthMetrics
-
-        return frostedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    sectionLabel("Activity Rings")
-
-                    Text(
-                        metrics.hasConnectedHealthKit
-                            ? "Your Move, Exercise, and Stand progress from Apple Health."
-                            : "Connect Apple Health to see your activity rings."
-                    )
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color.homeMuted)
-                    .lineSpacing(3)
-                }
-
-                ActivityRingsView(
-                    rings: metrics.displayActivityRings,
-                    isConnected: metrics.hasConnectedHealthKit
-                )
-            }
-        }
     }
 
     private var summaryText: String {
