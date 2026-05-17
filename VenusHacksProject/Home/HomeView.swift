@@ -51,6 +51,9 @@ struct HomeView: View {
         }
         .task {
             await state.prepareHealthData()
+            if state.homeProfileSummary.isEmpty {
+                state.refreshHomeSummary()
+            }
         }
         .onAppear {
             guard state.hasConnectedToHealthKit else { return }
@@ -58,6 +61,7 @@ struct HomeView: View {
         }
         .refreshable {
             await state.refreshHealthData()
+            state.refreshHomeSummary()
         }
     }
 
@@ -149,7 +153,9 @@ struct HomeView: View {
         VStack(alignment: .leading, spacing: 18) {
             appointmentCard
             statsSection
-            activityRingsSection
+            summaryCard
+            heartHealthCard
+            nextStepsCard
             DisclaimerFooter()
                 .padding(.top, 2)
         }
@@ -181,7 +187,6 @@ struct HomeView: View {
                         .foregroundStyle(Color.homeMuted)
                         .lineSpacing(3)
                 }
-
             }
         }
     }
@@ -200,133 +205,242 @@ struct HomeView: View {
         return "Next step: Keep track of any new symptoms, bring questions to your next visit, and use your feed to build confidence before check-ins."
     }
 
-    private var activityRingsSection: some View {
-        let metrics = state.healthMetrics
+    private var summaryText: String {
+        if state.homeProfileSummary.isEmpty {
+            return guidanceSummary
+        }
+        return state.homeProfileSummary
+    }
 
-        return frostedCard {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    sectionLabel("Activity Rings")
+    private var nextStepItems: [String] {
+        var items = [
+            Personalization.advocacyNextStep(for: state.profile),
+            "Write down one symptom pattern, question, or concern before your next visit so it is easier to explain clearly.",
+        ]
 
-                    Text(
-                        metrics.hasConnectedHealthKit
-                            ? "Your Move, Exercise, and Stand progress from Apple Health."
-                            : "Connect Apple Health to see your activity rings."
-                    )
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color.homeMuted)
-                    .lineSpacing(3)
+        if state.healthDerivedTags.dataSources.contains("blood pressure") {
+            items.append("Bring recent blood pressure readings to your next check-in and ask what range matters for you.")
+        } else if state.awarenessLevel != .general {
+            items.append("Ask your care team which heart-health signs should prompt a sooner call.")
+        } else {
+            items.append("Keep learning what symptoms are routine, what should be tracked, and what should be discussed early.")
+        }
+
+        return items
+    }
+
+    private var heartHealthText: String {
+        switch state.healthEnhancedProfile.awarenessLevel {
+        case .general:
+            return "Your heart-health focus is preventive: movement, rest, symptom awareness, and clear questions at routine check-ins."
+        case .heartAware:
+            return "Your profile points toward more heart-health awareness, especially around blood pressure, symptoms, screening, and follow-up timing."
+        case .higherAttention:
+            return "Your profile suggests closer care planning may be useful. This app cannot diagnose, but severe, sudden, or concerning symptoms should be handled urgently."
+        }
+    }
+
+    private var summaryCard: some View {
+        frostedCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.homeRose)
+
+                    sectionLabel("Summary")
                 }
 
-                ActivityRingsView(
-                    rings: metrics.displayActivityRings,
-                    isConnected: metrics.hasConnectedHealthKit
-                )
+                Text(summaryText)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.homeBody)
+                    .lineSpacing(5)
+
+                Text(state.homeSummaryStatus)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.homeMuted)
+
+                FlowLayout(spacing: 8) {
+                    insightTag(state.healthDerivedTags.dataSources.isEmpty ? "Profile Based" : "Apple Health")
+                    insightTag(state.healthEnhancedProfile.awarenessLevel.displayTitle)
+                    insightTag("Advocacy")
+                }
             }
         }
     }
 
-    private var guidanceCard: some View {
+    private var nextStepsCard: some View {
         frostedCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 8) {
-                    Image(systemName: "waveform.path.ecg")
+                    Image(systemName: "checklist")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.homeTeal)
+
+                    sectionLabel("Next Steps")
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(nextStepItems.enumerated()), id: \.offset) { index, item in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("\(index + 1)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 22, height: 22)
+                                .background(Color.homeTeal)
+                                .clipShape(Circle())
+
+                            Text(item)
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundStyle(Color.homeBody)
+                                .lineSpacing(4)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var heartHealthCard: some View {
+        frostedCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "heart.text.square")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.homeRose)
 
-                    sectionLabel("Care Guidance")
+                    sectionLabel("Heart Health")
                 }
-                
-                Text(guidanceSummary)
+
+                Text(heartHealthText)
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(Color.homeBody)
                     .lineSpacing(5)
+
+                VStack(spacing: 10) {
+                    healthMetricRow(symbol: "heart.fill", label: "Resting heart rate", value: heartRateValue)
+                    healthMetricRow(symbol: "waveform.path.ecg", label: "Blood pressure", value: bloodPressureValue)
+                    healthMetricRow(symbol: "moon.stars.fill", label: "Sleep", value: sleepValue)
+                }
 
                 Text(guidanceStepText)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.homeMuted)
                     .lineSpacing(4)
-
-                FlowLayout(spacing: 8) {
-                    insightTag("Summary")
-                    insightTag("Next Steps")
-                    insightTag("Heart Health")
-                }
             }
         }
     }
 
     private var statsSection: some View {
-        let metrics = state.healthMetrics
-
-        return VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
                 sectionLabel("Daily Snapshot")
 
-                Text(metrics.snapshotCaption)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color.homeMuted)
-                    .lineSpacing(3)
+                Text(
+                    state.healthDerivedTags.dataSources.isEmpty
+                        ? "Sample data for the demo experience. Not a diagnosis."
+                        : "Apple Health snapshot. Not a diagnosis."
+                )
+                .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(Color.homeMuted)
+                .lineSpacing(3)
 
-                if state.isRefreshingHealthData {
+                if state.isRefreshingHealthData || state.isLoadingHomeSummary {
                     ProgressView()
                         .tint(Color.homeRose)
                         .padding(.top, 4)
                 }
             }
 
-            if metrics.isAvailable, !metrics.hasConnectedHealthKit {
-                Button {
-                    Task { await state.prepareHealthData() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "heart.text.square.fill")
-                        Text("Connect Apple Health")
-                    }
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.homeRose, .homeRoseHi],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-                }
-                .buttonStyle(.plain)
-            }
-
-            guidanceCard
+            healthRingsCard
 
             LazyVGrid(columns: statColumns, spacing: 12) {
-                statCard(
-                    symbol: "heart.text.square",
-                    label: "Heart Rate",
-                    value: metrics.heartRateDisplay,
-                    color: .homeRose,
-                    progress: metrics.heartRateProgress
-                )
-                statCard(
-                    symbol: "figure.walk",
-                    label: "Steps",
-                    value: metrics.stepsDisplay,
-                    color: .homeTeal,
-                    progress: metrics.stepsProgress
-                )
-                statCard(
-                    symbol: "moon.stars",
-                    label: "Sleep",
-                    value: metrics.sleepDisplay,
-                    color: .homeLavender,
-                    progress: metrics.sleepProgress
-                )
+                statCard(symbol: "figure.walk", label: "Steps", value: stepsValue, color: .homeTeal, progress: stepsProgress)
+                statCard(symbol: "heart.text.square", label: "Heart Rate", value: heartRateValue, color: .homeRose, progress: heartRateProgress)
+                statCard(symbol: "moon.stars", label: "Sleep", value: sleepValue, color: .homeLavender, progress: sleepProgress)
             }
         }
+    }
+
+    private var healthRingsCard: some View {
+        frostedCard(padding: 16) {
+            HStack(spacing: 16) {
+                healthRings
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Health Rings")
+                        .font(.system(size: 17, weight: .semibold, design: .serif))
+                        .foregroundStyle(Color.homeInk)
+
+                    VStack(alignment: .leading, spacing: 7) {
+                        ringLegend(color: .homeTeal, label: "Move", value: stepsValue)
+                        ringLegend(color: .homeRose, label: "Heart", value: heartRateValue)
+                        ringLegend(color: .homeLavender, label: "Rest", value: sleepValue)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var healthRings: some View {
+        ZStack {
+            healthRing(progress: stepsProgress, color: .homeTeal, size: 86, lineWidth: 9)
+            healthRing(progress: heartRateProgress, color: .homeRose, size: 64, lineWidth: 9)
+            healthRing(progress: sleepProgress, color: .homeLavender, size: 42, lineWidth: 9)
+
+            Image(systemName: "heart.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.homeRose)
+        }
+        .frame(width: 94, height: 94)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Apple Health rings")
+    }
+
+    private var stepsValue: String {
+        guard let steps = state.healthSignal.stepsToday else { return "7,843" }
+        return NumberFormatter.localizedString(from: NSNumber(value: Int(steps.rounded())), number: .decimal)
+    }
+
+    private var heartRateValue: String {
+        if let restingHeartRate = state.healthSignal.restingHeartRate {
+            return "\(Int(restingHeartRate.rounded())) BPM"
+        }
+        if let heartRate = state.healthSignal.heartRate {
+            return "\(Int(heartRate.rounded())) BPM"
+        }
+        return "72 BPM"
+    }
+
+    private var bloodPressureValue: String {
+        guard let systolic = state.healthSignal.systolicBP,
+              let diastolic = state.healthSignal.diastolicBP else {
+            return "Not tracked"
+        }
+        return "\(Int(systolic.rounded()))/\(Int(diastolic.rounded()))"
+    }
+
+    private var sleepValue: String {
+        guard let sleep = state.healthSignal.sleepHoursLastNight else { return "7.2 H" }
+        return "\(String(format: "%.1f", sleep)) H"
+    }
+
+    private var stepsProgress: CGFloat {
+        guard let steps = state.healthSignal.stepsToday else { return 0.78 }
+        return min(CGFloat(steps / 10_000), 1)
+    }
+
+    private var heartRateProgress: CGFloat {
+        let rate = state.healthSignal.restingHeartRate ?? state.healthSignal.heartRate ?? 72
+        return min(max(CGFloat(rate / 100), 0.25), 1)
+    }
+
+    private var sleepProgress: CGFloat {
+        guard let sleep = state.healthSignal.sleepHoursLastNight else { return 0.85 }
+        return min(CGFloat(sleep / 8), 1)
     }
 
     private func statCard(
@@ -377,6 +491,67 @@ struct HomeView: View {
                 .frame(height: 6)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func healthRing(progress: CGFloat, color: Color, size: CGFloat, lineWidth: CGFloat) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.34), lineWidth: lineWidth)
+
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0.04), 1))
+                .stroke(
+                    LinearGradient(
+                        colors: [color.opacity(0.68), color],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: size, height: size)
+    }
+
+    private func ringLegend(color: Color, label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.homeBody)
+
+            Text(value)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.homeInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+    }
+
+    private func healthMetricRow(symbol: String, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.homeRose)
+                .frame(width: 30, height: 30)
+                .background(Color.white.opacity(0.28))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.homeBody)
+
+            Spacer(minLength: 8)
+
+            Text(value)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.homeInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
     }
 

@@ -11,12 +11,17 @@ import SwiftUI
 final class AppState {
     private let speechTranscriptionService = SpeechTranscriptionService()
     private let speechPlaybackService = SpeechPlaybackService()
+    private let healthKitManager = HealthKitManager.shared
     private let healthKitService = HealthKitService.shared
 
     var profile = UserProfile()
     var selectedTab = 0
     var showProfile = false
     var showRoadmapUpdate = false
+    var healthSignal = HealthSignal()
+    var homeProfileSummary = ""
+    var homeSummaryStatus = "Preparing your summary..."
+    var isLoadingHomeSummary = false
 
     var likedReels: Set<Int> = []
     var savedReels: Set<Int> = []
@@ -60,6 +65,14 @@ final class AppState {
         let ec = profile.emergencyContact
         guard ec.consentToNotify else { return false }
         return profile.isPostpartum && profile.lastLoginDaysAgo >= 3
+    }
+
+    var healthDerivedTags: HealthDerivedTags {
+        HealthTagMapper.map(healthSignal)
+    }
+
+    var healthEnhancedProfile: PersonalizationProfile {
+        HealthTagMapper.supplement(personalizationProfile, with: healthDerivedTags)
     }
 
     var healthMetrics: HealthMetrics {
@@ -253,6 +266,79 @@ final class AppState {
             practiceStatusMessage = "Transcript ready."
             sendChat(transcript)
         }
+    }
+
+    func refreshHomeSummary() {
+        guard isLoadingHomeSummary == false else { return }
+        isLoadingHomeSummary = true
+        homeSummaryStatus = "Checking Apple Health and profile details..."
+
+        Task {
+            defer { isLoadingHomeSummary = false }
+
+            do {
+                try await healthKitManager.requestReadAuthorization()
+                healthSignal = try await healthKitManager.fetchHealthSignal()
+                homeSummaryStatus = "Apple Health included."
+            } catch {
+                homeSummaryStatus = "Using your profile and advocacy details."
+            }
+
+            do {
+                homeProfileSummary = try await AdvocacyAIService.shared.generateHomeProfileSummary(
+                    profile: profile,
+                    healthSignal: healthSignal,
+                    personalizationProfile: healthEnhancedProfile,
+                    advocacySummary: Personalization.advocacySummary(for: profile)
+                )
+            } catch {
+                homeProfileSummary = Self.localHomeProfileSummary(
+                    profile: profile,
+                    healthSignal: healthSignal,
+                    personalizationProfile: healthEnhancedProfile
+                )
+                if homeSummaryStatus == "Checking Apple Health and profile details..." {
+                    homeSummaryStatus = "Personalized summary ready."
+                }
+            }
+        }
+    }
+
+    private static func localHomeProfileSummary(
+        profile: UserProfile,
+        healthSignal: HealthSignal,
+        personalizationProfile: PersonalizationProfile
+    ) -> String {
+        let stageText: String
+        if profile.isPregnant, let weeks = profile.weeksPregnant {
+            stageText = "\(weeks) weeks pregnant"
+        } else if profile.isPostpartum, let weeks = profile.weeksPostpartum {
+            stageText = "\(weeks) weeks postpartum"
+        } else {
+            stageText = profile.lifeStageLabel.lowercased()
+        }
+
+        var details: [String] = []
+        if profile.conditions.isEmpty == false {
+            details.append("your listed history includes \(profile.conditions.joined(separator: ", "))")
+        }
+        if profile.pregnancyComplications.isEmpty == false {
+            details.append("pregnancy-related notes include \(profile.pregnancyComplications.joined(separator: ", "))")
+        }
+        if let restingHeartRate = healthSignal.restingHeartRate {
+            details.append("recent resting heart rate is \(Int(restingHeartRate.rounded())) BPM")
+        } else if let heartRate = healthSignal.heartRate {
+            details.append("recent heart rate is \(Int(heartRate.rounded())) BPM")
+        }
+        if let systolic = healthSignal.systolicBP, let diastolic = healthSignal.diastolicBP {
+            details.append("recent blood pressure is \(Int(systolic.rounded()))/\(Int(diastolic.rounded()))")
+        }
+        if let sleep = healthSignal.sleepHoursLastNight {
+            details.append("last night's sleep is about \(String(format: "%.1f", sleep)) hours")
+        }
+
+        let context = details.isEmpty ? "your profile is set up for \(personalizationProfile.awarenessLevel.displayTitle.lowercased())" : details.joined(separator: "; ")
+        return "Your summary is focused on \(stageText) care, heart-health awareness, and stronger self-advocacy. Based on \(context), keep tracking changes, write down questions before visits, and use your care team when symptoms feel new, severe, or hard to explain."
     }
 
     // MARK: - Persistence
