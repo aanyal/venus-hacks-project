@@ -116,6 +116,23 @@ struct AdvocateFocus: Identifiable {
     let detail: String
 }
 
+enum PracticeScenario: String, CaseIterable {
+    case generalVisit = "General Visit"
+    case dismissedSymptoms = "Dismissed Symptoms"
+    case followUpQuestions = "Follow-Up Questions"
+
+    var subtitle: String {
+        switch self {
+        case .generalVisit:
+            return "Practice your opening questions and ask for clear next steps."
+        case .dismissedSymptoms:
+            return "Practice staying calm when concerns are minimized."
+        case .followUpQuestions:
+            return "Practice asking for testing, records, and a concrete plan."
+        }
+    }
+}
+
 enum OnboardingStep: Int, CaseIterable {
     case welcome = 0
     case screening
