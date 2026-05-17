@@ -2,20 +2,21 @@
 //  ContentView.swift
 //  VenusHacksProject
 //
-//  Created by Aanya L on 5/16/26.
-//
 
 import SwiftUI
 
 struct ContentView: View {
+    @State private var state = AppState()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if state.profile.hasCompletedOnboarding {
+                MainTabView(state: state)
+            } else {
+                OnboardingView(state: state)
+            }
         }
-        .padding()
+        .preferredColorScheme(.light)
     }
 }
 
