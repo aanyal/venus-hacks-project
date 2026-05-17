@@ -11,6 +11,7 @@ import SwiftUI
 final class AppState {
     private let speechTranscriptionService = SpeechTranscriptionService()
     private let speechPlaybackService = SpeechPlaybackService()
+    private let healthKitService = HealthKitService.shared
 
     var profile = UserProfile()
     var selectedTab = 0
@@ -59,6 +60,35 @@ final class AppState {
         let ec = profile.emergencyContact
         guard ec.consentToNotify else { return false }
         return profile.isPostpartum && profile.lastLoginDaysAgo >= 3
+    }
+
+    var healthMetrics: HealthMetrics {
+        healthKitService.metrics
+    }
+
+    var isRefreshingHealthData: Bool {
+        healthKitService.isRefreshing
+    }
+
+    var hasConnectedToHealthKit: Bool {
+        healthKitService.hasConnectedToHealthKit
+    }
+
+    func prepareHealthData() async {
+        await healthKitService.requestAuthorizationIfNeeded()
+    }
+
+    /// Call when returning to Home so data updates after authorization in Settings.
+    func reloadHealthDataIfConnected() async {
+        await healthKitService.refresh()
+    }
+
+    func refreshHealthData() async {
+        if healthKitService.hasConnectedToHealthKit {
+            await healthKitService.refresh()
+        } else {
+            await healthKitService.requestAuthorizationIfNeeded()
+        }
     }
 
     func completeOnboarding() {
