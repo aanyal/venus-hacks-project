@@ -19,6 +19,9 @@ final class AppState {
 
     var likedReels: Set<Int> = []
     var savedReels: Set<Int> = []
+    /// Personalized reel feed (string IDs from `PersonalizedLineSeedData`)
+    var likedReelLineIDs: Set<String> = []
+    var savedReelLineIDs: Set<String> = []
 
     var convoOpen = false
     var recording = false
@@ -36,8 +39,12 @@ final class AppState {
     var showStrongerResponse = false
     var currentReelIndex = 0
 
+    var personalizationProfile: PersonalizationProfile {
+        Personalization.profile(for: profile)
+    }
+
     var awarenessLevel: AwarenessLevel {
-        Personalization.awarenessLevel(for: profile)
+        personalizationProfile.awarenessLevel
     }
 
     var sortedReels: [ReelItem] {

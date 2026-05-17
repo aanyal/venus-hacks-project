@@ -7,6 +7,10 @@ import Foundation
 
 enum Personalization {
 
+    static func profile(for answers: UserProfile) -> PersonalizationProfile {
+        PersonalizationEngine.buildPersonalizationProfile(from: answers)
+    }
+
     static let screeningQuestions = [
         "Were you born with a heart condition or do you currently have any condition that needs medical attention?",
         "Have you ever been told that your heart is not working well, or do you have a heart problem?",

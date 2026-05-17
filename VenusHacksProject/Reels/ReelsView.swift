@@ -2,22 +2,58 @@
 //  ReelsView.swift
 //  VenusHacksProject
 //
+//  UI from origin/main · feed logic from PersonalizedLineSeedData + PersonalizationProfile
+//
 
 import SwiftUI
 
 struct ReelsView: View {
+    private let maxVisibleDots = 5
+
     @Bindable var state: AppState
     @State private var showShareSheet = false
 
-    private var reels: [ReelItem] { state.sortedReels }
-    private var reel: ReelItem {
-        reels[min(state.currentReelIndex, max(0, reels.count - 1))]
+    private var profile: PersonalizationProfile { state.personalizationProfile }
+
+    private var reels: [PersonalizedReelPresentation] {
+        ReelsPersonalization.presentations(for: profile)
+    }
+
+    private var reel: PersonalizedReelPresentation {
+        guard !reels.isEmpty else {
+            return PersonalizedReelPresentation(
+                line: PersonalizedLineSeedData.lines[0],
+                matchReason: "Heart-health awareness",
+                score: 0
+            )
+        }
+        let index = min(state.currentReelIndex, reels.count - 1)
+        return reels[index]
+    }
+
+    /// Up to 5 dots; slides with the current reel when there are more items.
+    private var visibleDotIndices: [Int] {
+        let count = reels.count
+        guard count > 0 else { return [] }
+        if count <= maxVisibleDots { return Array(0..<count) }
+
+        let window = maxVisibleDots
+        var start = state.currentReelIndex - window / 2
+        var end = start + window - 1
+        if start < 0 {
+            start = 0
+            end = window - 1
+        }
+        if end >= count {
+            end = count - 1
+            start = end - window + 1
+        }
+        return Array(start...end)
     }
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                // ── Full-bleed gradient background ──────────────────────
                 LinearGradient(
                     colors: [Color(hex: reel.grad[0]), Color(hex: reel.grad[1])],
                     startPoint: .topLeading,
@@ -26,14 +62,12 @@ struct ReelsView: View {
                 .ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.45), value: state.currentReelIndex)
 
-                // Subtle highlight blob top-right
                 Circle()
                     .fill(.white.opacity(0.12))
                     .frame(width: 220, height: 220)
                     .blur(radius: 60)
                     .offset(x: geo.size.width * 0.35, y: -geo.size.height * 0.20)
 
-                // Bottom scrim so text is always readable
                 LinearGradient(
                     colors: [.clear, .clear, .black.opacity(0.55)],
                     startPoint: .top,
@@ -41,23 +75,20 @@ struct ReelsView: View {
                 )
                 .ignoresSafeArea()
 
-                // ── Top pill ─────────────────────────────────────────────
                 forYouPill
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                     .padding(.top, 56)
 
-                // ── Right-side actions ────────────────────────────────────
                 reelActions
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(.trailing, 16)
                     .padding(.bottom, 44)
 
-                // ── Bottom content + pagination ───────────────────────────
                 VStack(alignment: .leading, spacing: 0) {
                     Spacer()
                     HStack(alignment: .bottom, spacing: 16) {
                         reelContent
-                        Spacer(minLength: 64) // leave room for action buttons
+                        Spacer(minLength: 64)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 32)
@@ -67,6 +98,7 @@ struct ReelsView: View {
         .gesture(
             DragGesture(minimumDistance: 40)
                 .onEnded { v in
+                    guard !reels.isEmpty else { return }
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
                         if v.translation.height < -40, state.currentReelIndex < reels.count - 1 {
                             state.currentReelIndex += 1
@@ -79,34 +111,36 @@ struct ReelsView: View {
         .sheet(isPresented: $showShareSheet) {
             ShareSheet(items: [shareText])
         }
+        .onChange(of: reels.count) { _, count in
+            if count == 0 {
+                state.currentReelIndex = 0
+            } else if state.currentReelIndex >= count {
+                state.currentReelIndex = 0
+            }
+        }
+        .onChange(of: profile) { _, _ in
+            state.currentReelIndex = 0
+        }
     }
 
     // MARK: - For You Pill
 
     private var forYouPill: some View {
-        HStack(spacing: 5) {
-            /*
-            Image(systemName: "sparkles")
-                .font(.system(size: 11, weight: .semibold))
-             */
-            Text("FOR YOU · \(reel.matchReason.uppercased())")
-                .font(.system(size: 12, weight: .semibold))
-        }
-        .foregroundStyle(.white)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(.white.opacity(0.18))
-        .background(.ultraThinMaterial.opacity(0.6))
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(.white.opacity(0.30), lineWidth: 1))
+        Text("FOR YOU · \(reel.matchReason.uppercased())")
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(.white.opacity(0.18))
+            .background(.ultraThinMaterial.opacity(0.6))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.30), lineWidth: 1))
     }
 
     // MARK: - Bottom Content
 
     private var reelContent: some View {
         VStack(alignment: .leading, spacing: 14) {
-
-            // Badge + tag
             HStack(spacing: 8) {
                 if let badge = reel.badge {
                     Text(badge)
@@ -138,32 +172,27 @@ struct ReelsView: View {
                 .overlay(Capsule().stroke(.white.opacity(0.25), lineWidth: 1))
             }
 
-            // Emoji
             Text(reel.emoji)
                 .font(.system(size: 44))
 
-            // Title — serif to match screenshots
             Text(reel.title)
                 .font(.system(size: 24, weight: .semibold, design: .serif))
                 .foregroundStyle(.white)
                 .lineSpacing(3)
                 .shadow(color: .black.opacity(0.25), radius: 4, y: 2)
 
-            // Subtitle
-            Text("Some symptoms are worth discussing early — not diagnosing.")
+            Text(reel.subtitle)
                 .font(.system(size: 13, weight: .regular))
                 .foregroundStyle(.white.opacity(0.88))
                 .lineSpacing(4)
                 .shadow(color: .black.opacity(0.20), radius: 3, y: 1)
 
-            // Creator row — frosted glass pill
             HStack(spacing: 10) {
-                // Avatar
                 ZStack {
                     Circle()
                         .fill(.white.opacity(0.22))
                         .overlay(Circle().stroke(.white.opacity(0.35), lineWidth: 1))
-                    Text("👩🏾‍⚕️")
+                    Text("💗")
                         .font(.system(size: 17))
                 }
                 .frame(width: 38, height: 38)
@@ -172,7 +201,7 @@ struct ReelsView: View {
                     Text(reel.creator)
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.white)
-                    Text(reel.verified ? "Verified source" : "Educational creator")
+                    Text(reel.verified ? "Personalized for your profile" : "Educational content")
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.75))
                 }
@@ -193,9 +222,8 @@ struct ReelsView: View {
 
     private var reelActions: some View {
         VStack(spacing: 12) {
-            // Pagination dots above actions
             VStack(spacing: 5) {
-                ForEach(reels.indices, id: \.self) { i in
+                ForEach(visibleDotIndices, id: \.self) { i in
                     Capsule()
                         .fill(i == state.currentReelIndex ? Color.white : .white.opacity(0.35))
                         .frame(
@@ -213,12 +241,11 @@ struct ReelsView: View {
             .padding(.bottom, 4)
 
             actionBtn(
-                state.likedReels.contains(reel.id) ? "heart.fill" : "heart",
+                state.likedReelLineIDs.contains(reel.id) ? "heart.fill" : "heart",
                 reel.likes
             ) {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
-                    if state.likedReels.contains(reel.id) { state.likedReels.remove(reel.id) }
-                    else { state.likedReels.insert(reel.id) }
+                    toggleReelID(reel.id, in: &state.likedReelLineIDs)
                 }
             }
 
@@ -227,12 +254,11 @@ struct ReelsView: View {
             actionBtn("bubble.right", "Chat") {}
 
             actionBtn(
-                state.savedReels.contains(reel.id) ? "bookmark.fill" : "bookmark",
+                state.savedReelLineIDs.contains(reel.id) ? "bookmark.fill" : "bookmark",
                 "Save"
             ) {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.6)) {
-                    if state.savedReels.contains(reel.id) { state.savedReels.remove(reel.id) }
-                    else { state.savedReels.insert(reel.id) }
+                    toggleReelID(reel.id, in: &state.savedReelLineIDs)
                 }
             }
         }
@@ -261,9 +287,11 @@ struct ReelsView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Helpers
+    private func toggleReelID(_ id: String, in set: inout Set<String>) {
+        if set.contains(id) { set.remove(id) } else { set.insert(id) }
+    }
 
     private var shareText: String {
-        "\(reel.title)\n\n\(reel.creator) on Cardia — heart-health education & self-advocacy. Not medical advice."
+        "\(reel.title)\n\n\(reel.subtitle)\n\n— Cardia (education & self-advocacy, not medical advice)"
     }
 }
