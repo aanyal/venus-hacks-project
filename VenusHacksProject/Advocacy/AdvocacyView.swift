@@ -20,32 +20,6 @@ struct AdvocacyView: View {
                 GlassCard {
                     VStack(alignment: .leading, spacing: DS.Space.sm) {
                         HStack(spacing: DS.Space.xs) {
-                            Text("🤖")
-                            DSLabel(text: "What to advocate for")
-                        }
-                        ForEach(Personalization.advocateFocus(for: state.profile)) { item in
-                            HStack(alignment: .top, spacing: DS.Space.sm) {
-                                Text(item.icon)
-                                    .frame(width: 34, height: 34)
-                                    .background(DS.cardAlt)
-                                    .clipShape(RoundedRectangle(cornerRadius: DS.Radius.sm))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title)
-                                        .font(.dsSans(DS.FontSize.sm, weight: .black))
-                                        .foregroundStyle(DS.textH)
-                                    Text(item.detail)
-                                        .font(.dsSans(DS.FontSize.xs + 1))
-                                        .foregroundStyle(DS.textB)
-                                        .lineSpacing(3)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                GlassCard {
-                    VStack(alignment: .leading, spacing: DS.Space.sm) {
-                        HStack(spacing: DS.Space.xs) {
                             Text("💬")
                             DSLabel(text: "Exact questions to ask")
                         }

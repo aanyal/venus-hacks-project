@@ -29,9 +29,9 @@ struct RoadmapView: View {
                             Text(t.rawValue)
                                 .font(.dsSans(DS.FontSize.xs + 1, weight: .black))
                                 .foregroundStyle(tab == t ? .white : DS.textM)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(tab == t ? DS.hotPink : DS.cardBg)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 7)
+                                .background(tab == t ? DS.hotPink : Color.white.opacity(0.35))
                                 .clipShape(Capsule())
                                 .overlay(Capsule().stroke(tab == t ? DS.hotPink : DS.border, lineWidth: 1.5))
                         }
@@ -54,19 +54,7 @@ struct RoadmapView: View {
 
                 guidanceBubble
 
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(LinearGradient(colors: [DS.hotPink, DS.cardAlt], startPoint: .top, endPoint: .bottom))
-                        .frame(width: 2)
-                        .padding(.leading, 20)
-
-                    VStack(spacing: DS.Space.sm) {
-                        ForEach(Array(milestones.enumerated()), id: \.element.id) { index, m in
-                            milestoneRow(m, index: index)
-                        }
-                    }
-                    .padding(.leading, 4)
-                }
+                zigzagTimeline
 
                 PinkButton(
                     title: "Update my roadmap",
@@ -79,6 +67,7 @@ struct RoadmapView: View {
                 Spacer().frame(height: DS.Space.xl)
             }
             .padding(.horizontal, DS.Space.md)
+            .padding(.top, DS.Space.sm)
         }
         .sheet(isPresented: $state.showRoadmapUpdate) {
             RoadmapUpdateSheet(state: state)
@@ -86,69 +75,71 @@ struct RoadmapView: View {
         .onAppear {
             if state.profile.isPostpartum { tab = .postpartum }
             else if state.profile.isPregnant { tab = .pregnancy }
+            else { tab = .lifetime }
         }
     }
 
-    private var progressLabel: String {
-        if state.profile.isPregnant {
-            return "Week \(state.profile.weeksPregnant ?? 16) journey 🌸"
+    private var zigzagTimeline: some View {
+        VStack(spacing: DS.Space.lg) {
+            ForEach(Array(milestones.enumerated()), id: \.element.id) { index, milestone in
+                zigzagRow(milestone, index: index)
+            }
         }
-        if state.profile.isPostpartum {
-            return "Postpartum care path 🌸"
-        }
-        return "Lifetime heart-health path"
-    }
-
-    private var guidanceBubble: some View {
-        let text = guidanceForTab()
-        return HStack {
-            if tab == .pregnancy || tab == .general { Spacer(minLength: 40) }
-            Text(text)
-                .font(.dsSans(DS.FontSize.sm))
-                .foregroundStyle(DS.textB)
-                .padding(DS.Space.sm)
-                .background(DS.cardAlt)
-                .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md))
-            if tab == .postpartum || tab == .lifetime { Spacer(minLength: 40) }
+        .background {
+            HStack {
+                Spacer()
+                Rectangle()
+                    .fill(
+                        LinearGradient(colors: [DS.hotPink, DS.cardAlt], startPoint: .top, endPoint: .bottom)
+                    )
+                    .frame(width: 2)
+                Spacer()
+            }
         }
     }
 
-    private func guidanceForTab() -> String {
-        let lower = state.profile.conditions.map { $0.lowercased() }
-        if lower.contains(where: { $0.contains("blood pressure") }) {
-            return "💡 Ask whether home BP tracking is right for you."
+    private func zigzagRow(_ m: RoadmapMilestone, index: Int) -> some View {
+        let isLeft = index % 2 == 0
+        return HStack(alignment: .top, spacing: 0) {
+            if isLeft {
+                milestoneCard(m)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                timelineNode(m)
+            } else {
+                timelineNode(m)
+                milestoneCard(m)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
-        if lower.contains(where: { $0.contains("diabetes") }) {
-            return "💡 Ask how diabetes may relate to long-term heart wellness."
-        }
-        if lower.contains(where: { $0.contains("congenital") || $0.contains("chd") }) {
-            return "💡 Ask if you need updated imaging or specialist follow-up."
-        }
-        return "💡 Risk does not mean certainty — awareness helps you advocate."
     }
 
-    private func milestoneRow(_ m: RoadmapMilestone, index: Int) -> some View {
-        HStack(alignment: .top, spacing: DS.Space.sm) {
-            ZStack {
+    private func timelineNode(_ m: RoadmapMilestone) -> some View {
+        ZStack {
+            if m.active {
                 Circle()
-                    .fill(m.done ? DS.hotPink : .white)
-                    .frame(width: 42, height: 42)
-                    .overlay(Circle().stroke(m.active || m.done ? DS.hotPink : DS.border, lineWidth: m.active ? 2.5 : 2))
-                if m.done {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
-                } else {
-                    Text(m.icon).font(.system(size: 16))
-                }
+                    .stroke(DS.cardAlt, lineWidth: 5)
+                    .frame(width: 52, height: 52)
             }
-            .overlay {
-                if m.active {
-                    Circle().stroke(DS.cardAlt, lineWidth: 5).frame(width: 52, height: 52)
-                }
+            Circle()
+                .fill(m.done ? DS.hotPink : .white)
+                .frame(width: 42, height: 42)
+                .overlay(
+                    Circle().stroke(m.active || m.done ? DS.hotPink : DS.border, lineWidth: m.active ? 2.5 : 2)
+                )
+            if m.done {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+            } else {
+                Text(m.icon).font(.system(size: 16))
             }
+        }
+        .frame(width: 52)
+    }
 
-            VStack(alignment: .leading, spacing: 2) {
+    private func milestoneCard(_ m: RoadmapMilestone) -> some View {
+        GlassCard(padding: DS.Space.sm) {
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text(m.week.uppercased())
                         .font(.dsSans(DS.FontSize.xs, weight: .black))
@@ -176,20 +167,47 @@ struct RoadmapView: View {
                     .font(.dsSans(DS.FontSize.xs + 1))
                     .foregroundStyle(DS.textB)
                     .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                if m.active {
-                    LinearGradient(colors: [DS.hotPink.opacity(0.1), DS.pink2.opacity(0.06)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                } else {
-                    DS.cardBg
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.md))
-            .overlay(RoundedRectangle(cornerRadius: DS.Radius.md).stroke(m.active ? DS.hotPink : DS.border, lineWidth: 1.5))
         }
-        .padding(.leading, index % 2 == 1 ? 8 : 0)
+        .overlay {
+            if m.active {
+                RoundedRectangle(cornerRadius: DS.Radius.lg)
+                    .stroke(DS.hotPink.opacity(0.5), lineWidth: 2)
+            }
+        }
+    }
+
+    private var progressLabel: String {
+        if state.profile.isPregnant {
+            return "Week \(state.profile.weeksPregnant ?? 16) journey 🌸"
+        }
+        if state.profile.isPostpartum {
+            return "Postpartum care path 🌸"
+        }
+        return "Lifetime heart-health path"
+    }
+
+    private var guidanceBubble: some View {
+        GlassCard(padding: DS.Space.sm) {
+            Text(guidanceForTab())
+                .font(.dsSans(DS.FontSize.sm))
+                .foregroundStyle(DS.textB)
+        }
+    }
+
+    private func guidanceForTab() -> String {
+        let lower = state.profile.conditions.map { $0.lowercased() }
+        if lower.contains(where: { $0.contains("blood pressure") }) {
+            return "💡 Ask whether home BP tracking is right for you."
+        }
+        if lower.contains(where: { $0.contains("diabetes") }) {
+            return "💡 Ask how diabetes may relate to long-term heart wellness."
+        }
+        if lower.contains(where: { $0.contains("congenital") || $0.contains("chd") }) {
+            return "💡 Ask if you need updated imaging or specialist follow-up."
+        }
+        return "💡 Risk does not mean certainty — awareness helps you advocate."
     }
 }
 
@@ -209,7 +227,7 @@ struct RoadmapUpdateSheet: View {
                     Toggle("Hospitalization", isOn: .constant(false))
                     Toggle("Care plan changed", isOn: .constant(false))
                 }
-                Text("We'll adjust reminders with rule-based logic in a future version. For MVP, your roadmap tab selection reflects your stage.")
+                Text("We'll adjust reminders with rule-based logic in a future version.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }

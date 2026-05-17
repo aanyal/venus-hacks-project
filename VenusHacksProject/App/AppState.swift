@@ -38,7 +38,8 @@ final class AppState {
     }
 
     var showEmergencyBadge: Bool {
-        guard let ec = profile.emergencyContact, ec.consentToNotify else { return false }
+        let ec = profile.emergencyContact
+        guard ec.consentToNotify else { return false }
         return profile.isPostpartum && profile.lastLoginDaysAgo >= 3
     }
 

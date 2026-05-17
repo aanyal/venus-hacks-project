@@ -24,12 +24,12 @@ enum Personalization {
         let hasBP = heartFlags.contains { $0.contains("blood pressure") || $0.contains("hypertension") }
         let hasDiabetes = heartFlags.contains { $0.contains("diabetes") }
         let hasComplication = !profile.pregnancyComplications.isEmpty
-        let yesCount = profile.healthScreeningAnswers.filter { $0 }.count
+        let yesCount = profile.healthScreeningAnswers.compactMap { $0 }.filter { $0 }.count
 
         if (hasCHD && (hasBP || hasComplication)) || yesCount >= 4 {
             return .higherAttention
         }
-        if hasCHD || hasBP || hasDiabetes || hasComplication || profile.healthScreeningAnswers[0] || profile.healthScreeningAnswers[2] {
+        if hasCHD || hasBP || hasDiabetes || hasComplication || profile.healthScreeningAnswers[0] == true || profile.healthScreeningAnswers[2] == true {
             return .heartAware
         }
         return .general

@@ -14,11 +14,35 @@ struct GlassCard<Content: View>: View {
     var body: some View {
         content()
             .padding(padding)
-            .background(.ultraThinMaterial)
-            .background(DS.cardBg.opacity(0.85))
-            .clipShape(RoundedRectangle(cornerRadius: DS.Radius.lg))
-            .overlay(RoundedRectangle(cornerRadius: DS.Radius.lg).stroke(DS.border, lineWidth: 1.5))
-            .shadow(color: DS.hotPink.opacity(0.10), radius: 10, y: 4)
+            .background {
+                ZStack {
+                    RoundedRectangle(cornerRadius: DS.Radius.lg, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: DS.Radius.lg, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.72),
+                                    Color.white.opacity(0.28),
+                                    DS.pink2.opacity(0.12),
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    RoundedRectangle(cornerRadius: DS.Radius.lg, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.9), DS.border.opacity(0.45)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                }
+            }
+            .shadow(color: DS.hotPink.opacity(0.12), radius: 16, y: 6)
+            .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
     }
 }
 
