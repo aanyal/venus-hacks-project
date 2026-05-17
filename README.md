@@ -51,7 +51,7 @@ Helping users connect symptoms, pregnancy history, health conditions, and heart 
 - Pregnancy and postpartum cardiovascular warning-sign awareness
 - Advocacy prompts for talking to healthcare providers
 - Community and support resources
-- Future Apple HealthKit integration for heart-related data
+- Apple HealthKit integration for heart-related data
 
 ---
 
