@@ -11,41 +11,33 @@ enum ReelsPersonalization {
 
     static func recommendedLines(
         from lines: [PersonalizedLine] = PersonalizedLineSeedData.lines,
-        for profile: PersonalizationProfile,
-        limit: Int = 30
+        for profile: PersonalizationProfile
     ) -> [PersonalizedLine] {
-        let scored = lines
+        lines
             .map { line in (line: line, score: scoreLine(line, for: profile)) }
-            .filter { $0.score > 0 }
+            .filter { isRelevant($0.line, score: $0.score, profile: profile) }
             .sorted { lhs, rhs in
                 if lhs.score == rhs.score {
                     return lhs.line.priority < rhs.line.priority
                 }
                 return lhs.score > rhs.score
             }
+            .map(\.line)
+    }
 
-        var firstPass: [(line: PersonalizedLine, score: Int)] = []
-        var deferred: [(line: PersonalizedLine, score: Int)] = []
-        var groupCounts: [String: Int] = [:]
-
-        for item in scored {
-            let count = groupCounts[item.line.groupLabel, default: 0]
-            if firstPass.count < 15 && count >= 3 {
-                deferred.append(item)
-            } else {
-                firstPass.append(item)
-                groupCounts[item.line.groupLabel, default: 0] += 1
-            }
-        }
-
-        return (firstPass + deferred).prefix(limit).map(\.line)
+    /// Includes scored matches plus broadly applicable education for the user's stage.
+    private static func isRelevant(_ line: PersonalizedLine, score: Int, profile: PersonalizationProfile) -> Bool {
+        if score > 0 { return true }
+        if line.riskGroups.contains("general") { return true }
+        if line.stage.contains(profile.stage) { return true }
+        if profile.stage == "lifetime", line.stage.contains("lifetime") { return true }
+        return false
     }
 
     static func presentations(
-        for profile: PersonalizationProfile,
-        limit: Int = 30
+        for profile: PersonalizationProfile
     ) -> [PersonalizedReelPresentation] {
-        recommendedLines(for: profile, limit: limit).map { line in
+        recommendedLines(for: profile).map { line in
             PersonalizedReelPresentation(
                 line: line,
                 matchReason: matchReason(for: line, profile: profile),
