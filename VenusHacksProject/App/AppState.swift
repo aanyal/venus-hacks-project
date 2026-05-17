@@ -25,8 +25,12 @@ final class AppState {
     var showStrongerResponse = false
     var currentReelIndex = 0
 
+    var personalizationProfile: PersonalizationProfile {
+        Personalization.profile(for: profile)
+    }
+
     var awarenessLevel: AwarenessLevel {
-        Personalization.awarenessLevel(for: profile)
+        personalizationProfile.awarenessLevel
     }
 
     var sortedReels: [ReelItem] {

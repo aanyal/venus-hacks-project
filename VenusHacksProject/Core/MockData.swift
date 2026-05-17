@@ -89,8 +89,12 @@ enum MockData {
             .init(week: "Ongoing", label: "Blood pressure awareness", sub: "Know what numbers to track and when to call your care team.", icon: "❤️", tab: .lifetime),
             .init(week: "Ongoing", label: "Cholesterol discussion", sub: "Ask when screening is right for you.", icon: "📋", tab: .lifetime),
         ]
-        if profile.conditions.contains(where: { $0.lowercased().contains("diabetes") }) {
+        let personalized = Personalization.profile(for: profile)
+        if personalized.conditionTags.contains("diabetes") || personalized.complicationTags.contains("gestational_diabetes") {
             items.append(.init(week: "Ongoing", label: "Blood sugar & heart health", sub: "Ask how diabetes may relate to long-term cardiovascular wellness.", icon: "🍎", tab: .lifetime))
+        }
+        if personalized.riskGroups.contains("blood_pressure") {
+            items.append(.init(week: "Ongoing", label: "Blood pressure follow-up", sub: "Ask what numbers should prompt a call and who owns follow-up.", icon: "🩺", tab: .lifetime))
         }
         items.append(.init(week: "Future", label: "Lifetime symptom awareness", sub: "Risk does not mean certainty — awareness helps you advocate.", icon: "🛡️", tab: .lifetime))
         return items

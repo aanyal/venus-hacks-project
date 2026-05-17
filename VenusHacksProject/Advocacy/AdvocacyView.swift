@@ -23,7 +23,7 @@ struct AdvocacyView: View {
                             Text("💬")
                             DSLabel(text: "Exact questions to ask")
                         }
-                        ForEach(Personalization.practiceQuestions(for: state.profile), id: \.self) { q in
+                        ForEach(Personalization.practiceQuestions(for: state.personalizationProfile), id: \.self) { q in
                             Button {
                                 state.convoOpen = true
                                 state.chatInput = q

@@ -5,7 +5,7 @@
 
 import Foundation
 
-enum AwarenessLevel: String, Codable {
+enum AwarenessLevel: String, Codable, Hashable {
     case general
     case heartAware
     case higherAttention
@@ -28,7 +28,7 @@ struct EmergencyContact: Codable, Equatable {
 
 struct UserProfile: Codable, Equatable {
     var name: String = ""
-    var age: Int = 28
+    var age: Int = 0
     var weight: String = ""
     var height: String = ""
     var ethnicity: String = ""

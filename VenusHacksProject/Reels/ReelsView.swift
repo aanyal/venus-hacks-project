@@ -12,25 +12,18 @@ struct ReelsView: View {
     @State private var likedReels: Set<String> = []
     @State private var showShareAlert = false
 
-    private var userProfile: ReelsUserProfile {
-        ReelsUserProfile(appProfile: state.profile)
+    private var personalizationProfile: PersonalizationProfile {
+        state.personalizationProfile
     }
 
-    private var recommendedReels: [ScoredReel] {
-        ReelsContent.items
-            .map { reel in
-                ScoredReel(reel: reel, score: recommendationScore(for: reel))
-            }
-            .sorted { lhs, rhs in
-                if lhs.score == rhs.score {
-                    return lhs.reel.priority < rhs.reel.priority
-                }
-                return lhs.score > rhs.score
-            }
+    private var scoredRecommendedReels: [ScoredReel] {
+        recommendedLines(from: PersonalizedLineSeedData.lines, for: personalizationProfile).map { line in
+            ScoredReel(reel: line, score: scoreLine(line, for: personalizationProfile))
+        }
     }
 
     private var filteredReels: [ScoredReel] {
-        recommendedReels.filter { selectedFilter.matches($0.reel, profile: userProfile) }
+        scoredRecommendedReels.filter { selectedFilter.matches($0.reel, profile: personalizationProfile) }
     }
 
     var body: some View {
@@ -169,41 +162,6 @@ struct ReelsView: View {
         }
     }
 
-    private func recommendationScore(for reel: EducationReel) -> Int {
-        var score = 0
-
-        if !Set(reel.complicationTags).isDisjoint(with: userProfile.pregnancyComplications) {
-            score += 8
-        }
-
-        if !Set(reel.conditionTags).isDisjoint(with: userProfile.conditions) {
-            score += 7
-        }
-
-        if !Set(reel.riskGroups).isDisjoint(with: userProfile.riskGroups) {
-            score += 5
-        }
-
-        if userProfile.isPostpartum && reel.stage.contains("postpartum") {
-            score += 3
-        } else if userProfile.isPregnant && reel.stage.contains("pregnancy") {
-            score += 3
-        }
-
-        if userProfile.isLowRisk && reel.riskGroups.contains("general") {
-            score += 4
-        }
-
-        if !Set(reel.tags).isDisjoint(with: userProfile.savedTags) {
-            score += 1
-        }
-
-        if reel.tags.contains("advocacy") {
-            score += 1
-        }
-
-        return score
-    }
 }
 
 private struct ReelEducationCard: View {
@@ -215,7 +173,7 @@ private struct ReelEducationCard: View {
     let onLike: () -> Void
     let onShare: () -> Void
 
-    private var reel: EducationReel { scoredReel.reel }
+    private var reel: PersonalizedLine { scoredReel.reel }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -263,7 +221,7 @@ private struct ReelEducationCard: View {
     private var trustedBadge: some View {
         HStack(spacing: 6) {
             Image(systemName: "checkmark.seal.fill")
-            Text("Verified education")
+            Text(reel.contentType == "advocacy" ? "Advocacy" : "Health education")
         }
         .font(.dsSans(DS.FontSize.xs, weight: .black))
         .foregroundStyle(.white)
@@ -292,17 +250,9 @@ private struct ReelEducationCard: View {
         VStack(alignment: .leading, spacing: DS.Space.sm) {
             glassLine(
                 icon: reel.icon,
-                label: reel.groupLabel,
-                text: reel.takeaway
+                label: "Personalized line",
+                text: reel.line
             )
-
-            if let advocacy = reel.advocacyPrompt {
-                glassLine(
-                    icon: "megaphone.fill",
-                    label: "Self-advocacy",
-                    text: advocacy
-                )
-            }
         }
     }
 
@@ -412,281 +362,120 @@ private enum ReelFilter: String, CaseIterable, Identifiable {
         }
     }
 
-    func matches(_ reel: EducationReel, profile: ReelsUserProfile) -> Bool {
+    func matches(_ reel: PersonalizedLine, profile: PersonalizationProfile) -> Bool {
         switch self {
         case .forYou:
             return true
         case .pregnancyHistory:
-            return !Set(reel.complicationTags).isDisjoint(with: profile.pregnancyComplications)
+            return !Set(reel.complicationTags).isDisjoint(with: profile.complicationTags)
+                || reel.stage.contains("pregnancy")
         case .advocacy:
-            return reel.tags.contains("advocacy")
+            return reel.contentType == "advocacy" || reel.topicTags.contains("advocacy")
         case .postpartum:
             return reel.stage.contains("postpartum")
         case .heartHealth:
-            return reel.tags.contains("heart_health")
+            return reel.topicTags.contains("heart_health")
+                || !Set(reel.riskGroups).isDisjoint(with: profile.riskGroups)
         }
     }
 }
 
-private struct ReelsUserProfile {
-    let isPregnant: Bool
-    let isPostpartum: Bool
-    let conditions: [String]
-    let pregnancyComplications: [String]
-    let savedTags: [String]
+private func scoreLine(_ line: PersonalizedLine, for profile: PersonalizationProfile) -> Int {
+    var score = 0
 
-    init(appProfile: UserProfile) {
-        isPregnant = appProfile.isPregnant
-        isPostpartum = appProfile.isPostpartum
-        conditions = appProfile.conditions.map(Self.normalized).filter { $0 != "none_selected" }
-        pregnancyComplications = appProfile.pregnancyComplications.map(Self.normalized).filter { $0 != "none_selected" }
-        savedTags = appProfile.interests.map(Self.normalized)
+    if line.stage.contains(profile.stage) { score += 24 }
+    if line.stage.contains("lifetime") { score += 8 }
+
+    score += Set(line.riskGroups).intersection(profile.riskGroups).count * 30
+    score += Set(line.complicationTags).intersection(profile.complicationTags).count * 45
+    score += Set(line.conditionTags).intersection(profile.conditionTags).count * 40
+    score += Set(line.topicTags).intersection(profile.topicTags).count * 14
+
+    if line.contentType == "advocacy" || line.topicTags.contains("advocacy") { score += 14 }
+    if line.topicTags.contains("urgent_symptoms") { score += 18 }
+    if line.topicTags.contains("symptoms") { score += 8 }
+    if line.riskGroups == ["general"] || Set(line.riskGroups).isSubset(of: ["general", "pregnancy", "postpartum"]) {
+        score += 6
     }
 
-    var isLowRisk: Bool {
-        conditions.isEmpty && pregnancyComplications.isEmpty
-    }
-
-    var riskGroups: [String] {
-        var groups: Set<String> = []
-
-        if conditions.contains("high_blood_pressure") || pregnancyComplications.contains("preeclampsia") || pregnancyComplications.contains("gestational_hypertension") {
-            groups.insert("blood_pressure")
-            groups.insert("elevated_heart_risk")
-        }
-
-        if conditions.contains("diabetes") || pregnancyComplications.contains("gestational_diabetes") {
-            groups.insert("metabolic")
-            groups.insert("elevated_heart_risk")
-        }
-
-        if conditions.contains("congenital_heart_disease") {
-            groups.insert("known_heart_condition")
-            groups.insert("elevated_heart_risk")
-        }
-
-        if isPostpartum {
-            groups.insert("postpartum")
-        }
-
-        if isPregnant {
-            groups.insert("pregnancy")
-        }
-
-        if groups.isEmpty {
-            groups.insert("general")
-        }
-
-        return Array(groups)
-    }
-
-    nonisolated private static func normalized(_ value: String) -> String {
-        let lowercased = value.lowercased()
-        if lowercased.contains("preeclampsia") { return "preeclampsia" }
-        if lowercased.contains("gestational hypertension") { return "gestational_hypertension" }
-        if lowercased.contains("gestational diabetes") { return "gestational_diabetes" }
-        if lowercased.contains("blood pressure") { return "high_blood_pressure" }
-        if lowercased.contains("diabetes") { return "diabetes" }
-        if lowercased.contains("congenital") || lowercased.contains("chd") { return "congenital_heart_disease" }
-        return lowercased
-            .replacingOccurrences(of: " ", with: "_")
-            .replacingOccurrences(of: "-", with: "_")
-    }
+    score += max(0, 12 - line.priority)
+    return score
 }
 
-private struct EducationReel: Identifiable {
-    let id: String
-    let title: String
-    let source: String
-    let tags: [String]
-    let stage: [String]
-    let riskGroups: [String]
-    let complicationTags: [String]
-    let conditionTags: [String]
-    let groupLabel: String
-    let takeaway: String
-    let advocacyPrompt: String?
-    let icon: String
-    let gradient: [String]
-    let priority: Int
+private func recommendedLines(
+    from lines: [PersonalizedLine],
+    for profile: PersonalizationProfile,
+    limit: Int = 30
+) -> [PersonalizedLine] {
+    let scored = lines
+        .map { line in (line: line, score: scoreLine(line, for: profile)) }
+        .filter { $0.score > 0 }
+        .sorted { lhs, rhs in
+            if lhs.score == rhs.score {
+                return lhs.line.priority < rhs.line.priority
+            }
+            return lhs.score > rhs.score
+        }
 
-    var displayTags: [String] {
-        tags.prefix(2).map { tag in
-            tag
-                .replacingOccurrences(of: "_", with: " ")
-                .capitalized
+    var firstPass: [(line: PersonalizedLine, score: Int)] = []
+    var deferred: [(line: PersonalizedLine, score: Int)] = []
+    var groupCounts: [String: Int] = [:]
+
+    for item in scored {
+        let count = groupCounts[item.line.groupLabel, default: 0]
+        if firstPass.count < 15 && count >= 3 {
+            deferred.append(item)
+        } else {
+            firstPass.append(item)
+            groupCounts[item.line.groupLabel, default: 0] += 1
         }
     }
+
+    return (firstPass + deferred).prefix(limit).map(\.line)
 }
 
 private struct ScoredReel: Identifiable {
-    let reel: EducationReel
+    let reel: PersonalizedLine
     let score: Int
 
     var id: String { reel.id }
 }
 
-private enum ReelsContent {
-    static let items: [EducationReel] = [
-        EducationReel(
-            id: "bp-followup",
-            title: "BP Follow-Up",
-            source: "ACOG style source",
-            tags: ["blood_pressure", "heart_health"],
-            stage: ["postpartum", "lifetime"],
-            riskGroups: ["blood_pressure", "elevated_heart_risk"],
-            complicationTags: ["preeclampsia", "gestational_hypertension"],
-            conditionTags: ["high_blood_pressure"],
-            groupLabel: "Blood pressure history",
-            takeaway: "A history of high blood pressure or preeclampsia can make follow-up checks more relevant after pregnancy.",
-            advocacyPrompt: "Ask for a clear plan for when to recheck, when to call, and who manages follow-up.",
-            icon: "waveform.path.ecg",
-            gradient: ["E05C97", "ED8DBB"],
-            priority: 1
-        ),
-        EducationReel(
-            id: "warning-signs",
-            title: "Warning Signs",
-            source: "CDC style source",
-            tags: ["symptoms", "heart_health"],
-            stage: ["pregnancy", "postpartum", "lifetime"],
-            riskGroups: ["elevated_heart_risk", "known_heart_condition", "blood_pressure"],
-            complicationTags: ["preeclampsia", "gestational_hypertension"],
-            conditionTags: ["high_blood_pressure", "congenital_heart_disease"],
-            groupLabel: "Higher attention",
-            takeaway: "Severe chest pressure, sudden shortness of breath, fainting, or one-sided weakness should be treated as urgent.",
-            advocacyPrompt: "If symptoms feel severe, sudden, or concerning, seek urgent care instead of waiting.",
-            icon: "exclamationmark.triangle.fill",
-            gradient: ["D94F6F", "F0A500"],
-            priority: 2
-        ),
-        EducationReel(
-            id: "heart-symptoms",
-            title: "Heart Symptoms",
-            source: "American Heart Association style source",
-            tags: ["symptoms", "heart_health"],
-            stage: ["pregnancy", "postpartum", "lifetime"],
-            riskGroups: ["general", "postpartum", "pregnancy"],
-            complicationTags: [],
-            conditionTags: [],
-            groupLabel: "General awareness",
-            takeaway: "Symptoms like chest discomfort, unusual breathlessness, fainting, or new swelling can be worth discussing early.",
-            advocacyPrompt: nil,
-            icon: "heart.text.square.fill",
-            gradient: ["B060C8", "E05C97"],
-            priority: 3
-        ),
-        EducationReel(
-            id: "sugar-heart",
-            title: "Sugar + Heart",
-            source: "American Heart Association style source",
-            tags: ["diabetes", "heart_health"],
-            stage: ["postpartum", "lifetime"],
-            riskGroups: ["metabolic", "elevated_heart_risk"],
-            complicationTags: ["gestational_diabetes"],
-            conditionTags: ["diabetes"],
-            groupLabel: "Diabetes history",
-            takeaway: "Gestational diabetes or diabetes can make future heart-health screening conversations more relevant.",
-            advocacyPrompt: "Keep pregnancy blood-sugar history visible in primary care visits after postpartum care ends.",
-            icon: "drop.fill",
-            gradient: ["2ABFBD", "ED8DBB"],
-            priority: 4
-        ),
-        EducationReel(
-            id: "six-week",
-            title: "Six Weeks",
-            source: "March of Dimes style source",
-            tags: ["postpartum", "advocacy"],
-            stage: ["postpartum"],
-            riskGroups: ["postpartum", "blood_pressure", "metabolic"],
-            complicationTags: ["preeclampsia", "gestational_hypertension", "gestational_diabetes"],
-            conditionTags: ["high_blood_pressure", "diabetes"],
-            groupLabel: "Postpartum",
-            takeaway: "A postpartum visit can connect recovery, blood pressure, mood, symptoms, and future screening.",
-            advocacyPrompt: "Before the visit ends, ask what care continues and who owns each next step.",
-            icon: "calendar.badge.clock",
-            gradient: ["F5A1C8", "E05C97"],
-            priority: 5
-        ),
-        EducationReel(
-            id: "speak-up",
-            title: "Speak Up",
-            source: "ACOG style source",
-            tags: ["advocacy", "symptoms"],
-            stage: ["pregnancy", "postpartum", "lifetime"],
-            riskGroups: ["general", "postpartum", "pregnancy", "elevated_heart_risk"],
-            complicationTags: [],
-            conditionTags: [],
-            groupLabel: "Self-advocacy",
-            takeaway: "It is reasonable to ask what else could explain symptoms and what would change the care plan.",
-            advocacyPrompt: "Use clear phrases like: I am concerned, this feels different, and I need to know what to watch for.",
-            icon: "megaphone.fill",
-            gradient: ["8B3A5E", "E05C97"],
-            priority: 6
-        ),
-        EducationReel(
-            id: "track-it",
-            title: "Track It",
-            source: "March of Dimes style source",
-            tags: ["tracking", "advocacy"],
-            stage: ["pregnancy", "postpartum", "lifetime"],
-            riskGroups: ["general", "postpartum", "blood_pressure", "metabolic"],
-            complicationTags: [],
-            conditionTags: ["high_blood_pressure", "diabetes"],
-            groupLabel: "No wearable needed",
-            takeaway: "A simple note with symptoms, timing, medicines, and blood pressure if available can make visits easier.",
-            advocacyPrompt: "Bring the log to visits and ask which patterns should prompt a call.",
-            icon: "note.text",
-            gradient: ["FBD5E8", "B060C8"],
-            priority: 7
-        ),
-        EducationReel(
-            id: "telehealth",
-            title: "Telehealth Prep",
-            source: "CDC style source",
-            tags: ["telehealth", "advocacy"],
-            stage: ["postpartum", "lifetime"],
-            riskGroups: ["postpartum", "blood_pressure", "elevated_heart_risk"],
-            complicationTags: ["preeclampsia", "gestational_hypertension"],
-            conditionTags: ["high_blood_pressure"],
-            groupLabel: "Rural access",
-            takeaway: "Before telehealth, gather symptoms, medicines, recent readings, and your top two concerns.",
-            advocacyPrompt: "Ask where to go locally if the visit suggests you need in-person care.",
-            icon: "video.fill",
-            gradient: ["ED8DBB", "2ABFBD"],
-            priority: 8
-        ),
-        EducationReel(
-            id: "yearly-care",
-            title: "Yearly Care",
-            source: "American Heart Association style source",
-            tags: ["heart_health", "blood_pressure"],
-            stage: ["lifetime"],
-            riskGroups: ["elevated_heart_risk", "blood_pressure", "metabolic"],
-            complicationTags: ["preeclampsia", "gestational_hypertension", "gestational_diabetes"],
-            conditionTags: ["high_blood_pressure", "diabetes"],
-            groupLabel: "Long-term prevention",
-            takeaway: "Pregnancy complications can be useful context for preventive heart-health checkups over time.",
-            advocacyPrompt: "Ask that pregnancy history stays in your chart for annual preventive care.",
-            icon: "heart.circle.fill",
-            gradient: ["E05C97", "5C1A37"],
-            priority: 9
-        ),
-        EducationReel(
-            id: "low-risk",
-            title: "Body Cues",
-            source: "CDC style source",
-            tags: ["symptoms", "heart_health"],
-            stage: ["pregnancy", "postpartum", "lifetime"],
-            riskGroups: ["general"],
-            complicationTags: [],
-            conditionTags: [],
-            groupLabel: "Low-risk basics",
-            takeaway: "Even with no known risk factors, learning what feels normal for you can support earlier conversations.",
-            advocacyPrompt: nil,
-            icon: "sparkles",
-            gradient: ["F6B9D6", "F0A500"],
-            priority: 10
-        )
-    ]
+private extension PersonalizedLine {
+    var source: String {
+        contentType == "advocacy" ? "Advocacy prompt" : "Health education"
+    }
+
+    var groupLabel: String {
+        if let complication = complicationTags.first { return complication }
+        if let condition = conditionTags.first { return condition }
+        if let risk = riskGroups.first(where: { $0 != "general" }) { return risk }
+        return contentType
+    }
+
+    var icon: String {
+        if topicTags.contains("urgent_symptoms") { return "exclamationmark.triangle.fill" }
+        if topicTags.contains("blood_pressure") { return "waveform.path.ecg" }
+        if topicTags.contains("diabetes") { return "drop.fill" }
+        if topicTags.contains("medication_safety") { return "pills.fill" }
+        if topicTags.contains("breathing") { return "lungs.fill" }
+        if topicTags.contains("nutrition") { return "leaf.fill" }
+        if topicTags.contains("support") || topicTags.contains("mental_health") { return "heart.text.square.fill" }
+        if contentType == "advocacy" { return "megaphone.fill" }
+        return "heart.circle.fill"
+    }
+
+    var gradient: [String] {
+        if topicTags.contains("urgent_symptoms") { return ["D94F6F", "F0A500"] }
+        if topicTags.contains("blood_pressure") { return ["E05C97", "ED8DBB"] }
+        if topicTags.contains("diabetes") { return ["2ABFBD", "ED8DBB"] }
+        if contentType == "advocacy" { return ["8B3A5E", "E05C97"] }
+        return ["B060C8", "E05C97"]
+    }
+
+    var displayTags: [String] {
+        Array((topicTags + riskGroups).prefix(2)).map {
+            $0.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
 }

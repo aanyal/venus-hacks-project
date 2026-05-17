@@ -18,7 +18,7 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
                 greetingRow
                 appointmentCard
-                if Personalization.showStatAlert(for: state.profile) {
+                if state.personalizationProfile.awarenessLevel == .higherAttention {
                     alertCard
                 }
                 insightCard
@@ -80,7 +80,7 @@ struct HomeView: View {
                     Image(systemName: "calendar")
                     DSLabel(text: "Next appointment", color: .white.opacity(0.9))
                 }
-                Text(Personalization.appointmentTitle(for: state.profile))
+                Text(state.personalizationProfile.appointmentTitle)
                     .font(.dsSans(DS.FontSize.base, weight: .bold))
                     .foregroundStyle(.white)
                 Text("Based on your profile, it may be helpful to schedule a preventive check-in.")
@@ -103,10 +103,15 @@ struct HomeView: View {
             HStack(alignment: .top, spacing: DS.Space.sm) {
                 Image(systemName: "waveform.path.ecg")
                     .foregroundStyle(DS.coral)
-                Text(SafetyText.statAlert)
-                    .font(.dsSans(DS.FontSize.sm))
-                    .foregroundStyle(DS.textB)
-                    .lineSpacing(4)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(state.personalizationProfile.alertCardTitle)
+                        .font(.dsSans(DS.FontSize.sm, weight: .black))
+                        .foregroundStyle(DS.textH)
+                    Text(state.personalizationProfile.alertCardText)
+                        .font(.dsSans(DS.FontSize.sm))
+                        .foregroundStyle(DS.textB)
+                        .lineSpacing(4)
+                }
             }
         }
     }
@@ -118,7 +123,7 @@ struct HomeView: View {
                     Text("✨")
                     DSLabel(text: "AI Health Insight")
                 }
-                Text(Personalization.homeInsight(for: state.profile))
+                Text(state.personalizationProfile.primaryInsight)
                     .font(.dsSans(DS.FontSize.sm))
                     .foregroundStyle(DS.textB)
                     .lineSpacing(5)

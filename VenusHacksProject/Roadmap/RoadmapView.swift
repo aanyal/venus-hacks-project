@@ -18,6 +18,10 @@ struct RoadmapView: View {
         return milestones.isEmpty ? 0.35 : Double(done) / Double(milestones.count)
     }
 
+    private var personalized: PersonalizationProfile {
+        state.personalizationProfile
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
@@ -73,8 +77,8 @@ struct RoadmapView: View {
             RoadmapUpdateSheet(state: state)
         }
         .onAppear {
-            if state.profile.isPostpartum { tab = .postpartum }
-            else if state.profile.isPregnant { tab = .pregnancy }
+            if personalized.stage == "postpartum" { tab = .postpartum }
+            else if personalized.stage == "pregnancy" { tab = .pregnancy }
             else { tab = .lifetime }
         }
     }
@@ -190,24 +194,42 @@ struct RoadmapView: View {
 
     private var guidanceBubble: some View {
         GlassCard(padding: DS.Space.sm) {
-            Text(guidanceForTab())
-                .font(.dsSans(DS.FontSize.sm))
-                .foregroundStyle(DS.textB)
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(roadmapNotes(), id: \.self) { note in
+                    Text(note)
+                        .font(.dsSans(DS.FontSize.sm))
+                        .foregroundStyle(DS.textB)
+                }
+            }
         }
     }
 
-    private func guidanceForTab() -> String {
-        let lower = state.profile.conditions.map { $0.lowercased() }
-        if lower.contains(where: { $0.contains("blood pressure") }) {
-            return "💡 Ask whether home BP tracking is right for you."
+    private func roadmapNotes() -> [String] {
+        let tags = personalized.riskGroups
+            .union(personalized.conditionTags)
+            .union(personalized.complicationTags)
+        var notes: [String] = ["💡 Risk does not mean certainty. Awareness helps you advocate."]
+
+        if tags.contains("blood_pressure") || tags.contains("preeclampsia") || tags.contains("gestational_hypertension") {
+            notes.append("Plan blood pressure follow-up and know when to call.")
         }
-        if lower.contains(where: { $0.contains("diabetes") }) {
-            return "💡 Ask how diabetes may relate to long-term heart wellness."
+        if tags.contains("diabetes") || tags.contains("gestational_diabetes") {
+            notes.append("Ask about postpartum glucose testing and long-term screening.")
         }
-        if lower.contains(where: { $0.contains("congenital") || $0.contains("chd") }) {
-            return "💡 Ask if you need updated imaging or specialist follow-up."
+        if tags.contains("known_heart_condition") || tags.contains("heart_disease") || tags.contains("congenital_heart_disease") {
+            notes.append("Confirm who is managing heart symptoms and medications.")
         }
-        return "💡 Risk does not mean certainty — awareness helps you advocate."
+        if tags.contains("lung_condition") {
+            notes.append("Clarify which breathing symptoms need urgent attention.")
+        }
+        if tags.contains("substance_use") || tags.contains("alcohol_use_history") {
+            notes.append("Ask for supportive, nonjudgmental care resources.")
+        }
+        if tags.contains("higher_support_needs") {
+            notes.append("Write down who to contact for urgent and non-urgent concerns.")
+        }
+
+        return notes
     }
 }
 

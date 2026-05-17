@@ -18,6 +18,7 @@ struct ProfileView: View {
                         emergencyBanner
                     }
                     infoSection
+                    personalizationSection
                     privacySection
                     emergencySection
                     DisclaimerFooter()
@@ -105,6 +106,19 @@ struct ProfileView: View {
         }
     }
 
+    private var personalizationSection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: DS.Space.sm) {
+                sectionTitle("Personalization")
+                row("Stage", displayTag(state.personalizationProfile.stage))
+                tagGroup("Risk groups", state.personalizationProfile.riskGroups)
+                tagGroup("Conditions", state.personalizationProfile.conditionTags)
+                tagGroup("Complications", state.personalizationProfile.complicationTags)
+                tagGroup("Topics", state.personalizationProfile.topicTags)
+            }
+        }
+    }
+
     private var privacySection: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: DS.Space.sm) {
@@ -156,6 +170,28 @@ struct ProfileView: View {
                 .foregroundStyle(DS.textH)
                 .multilineTextAlignment(.trailing)
         }
+    }
+
+    @ViewBuilder
+    private func tagGroup(_ label: String, _ tags: Set<String>) -> some View {
+        let visibleTags = tags.sorted()
+        if !visibleTags.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(label)
+                    .font(.dsSans(DS.FontSize.xs))
+                    .foregroundStyle(DS.textM)
+                FlowLayout(spacing: DS.Space.xs) {
+                    ForEach(visibleTags, id: \.self) { tag in
+                        DSTag(text: displayTag(tag))
+                    }
+                }
+            }
+        }
+    }
+
+    private func displayTag(_ tag: String) -> String {
+        tag.replacingOccurrences(of: "_", with: " ")
+            .capitalized
     }
 
     private var initials: String {
