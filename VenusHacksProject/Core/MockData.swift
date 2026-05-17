@@ -58,8 +58,6 @@ enum MockData {
             return postpartumMilestones(profile: profile)
         case .lifetime:
             return lifetimeMilestones(profile: profile)
-        case .general:
-            return generalMilestones(profile: profile)
         }
     }
 
@@ -98,11 +96,4 @@ enum MockData {
         return items
     }
 
-    private static func generalMilestones(profile: UserProfile) -> [RoadmapMilestone] {
-        [
-            .init(week: "Now", label: "Learn your baseline", sub: "Know your usual patterns and what questions to ask.", icon: "📊", active: true, tab: .general),
-            .init(week: "Monthly", label: "Wellness check-in", sub: "Review movement, sleep, and stress with kindness — not fear.", icon: "🧘", tab: .general),
-            .init(week: "Quarterly", label: "Advocacy refresh", sub: "Revisit questions for your next appointment.", icon: "📣", tab: .general),
-        ]
-    }
 }

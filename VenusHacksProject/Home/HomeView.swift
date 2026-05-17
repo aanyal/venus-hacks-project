@@ -132,36 +132,15 @@ struct HomeView: View {
     }
 
     private var statsSection: some View {
-        VStack(alignment: .leading, spacing: DS.Space.sm) {
-            GlassCard {
-                VStack(alignment: .leading, spacing: DS.Space.sm) {
-                    DSLabel(text: "Blood pressure · This week")
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("118/76")
-                            .font(.dsSerif(DS.FontSize.lg))
-                            .foregroundStyle(DS.textH)
-                        Text("Within typical range ✓")
-                            .font(.dsSans(DS.FontSize.sm, weight: .bold))
-                            .foregroundStyle(DS.teal)
-                    }
-                    MiniBarChart(data: MockData.bpWeek, gradient: [DS.hotPink, DS.pink2])
-                    Text("Sample data for demo. Not a diagnosis.")
-                        .font(.dsSans(DS.FontSize.xs))
-                        .foregroundStyle(DS.textM)
-                }
-            }
-
+        VStack(alignment: .leading, spacing: DS.Space.xs) {
+            DSLabel(text: "Stats summary")
+            Text("Sample data for demo. Not a diagnosis.")
+                .font(.dsSans(DS.FontSize.xs))
+                .foregroundStyle(DS.textM)
             HStack(spacing: DS.Space.xs) {
                 statMini(icon: "👟", label: "Steps", value: "7,843", color: DS.teal, pct: 78)
                 statMini(icon: "❤️", label: "Heart rate", value: "72 bpm", color: DS.hotPink, pct: 72)
                 statMini(icon: "🌙", label: "Sleep", value: "7.2 h", color: DS.softPurple, pct: 85)
-            }
-
-            GlassCard(padding: DS.Space.sm) {
-                VStack(alignment: .leading, spacing: DS.Space.xs) {
-                    DSLabel(text: "Steps · 7-day trend")
-                    MiniBarChart(data: MockData.stepsWeek, gradient: [DS.teal, DS.pink2])
-                }
             }
         }
     }

@@ -76,7 +76,7 @@ struct ProfileView: View {
                     Text("Emergency contact alert available")
                         .font(.dsSans(DS.FontSize.sm, weight: .black))
                         .foregroundStyle(DS.textH)
-                    Text("Demo: \(state.profile.emergencyContact?.name ?? "Contact") has not received a real message. In production, alerts require explicit consent.")
+                    Text("Demo: \(state.profile.emergencyContact.name) has not received a real message. In production, alerts require explicit consent.")
                         .font(.dsSans(DS.FontSize.xs))
                         .foregroundStyle(DS.textB)
                 }
@@ -130,16 +130,11 @@ struct ProfileView: View {
                 Text("Demo only — no automatic messages are sent in this MVP.")
                     .font(.dsSans(DS.FontSize.xs))
                     .foregroundStyle(DS.textM)
-                if let ec = state.profile.emergencyContact, !ec.name.isEmpty {
-                    row("Name", ec.name)
-                    row("Relationship", ec.relationship)
-                    row("Phone", ec.phone)
-                    row("Consent", ec.consentToNotify ? "Given" : "Not given")
-                } else {
-                    Text("No contact added. Add during onboarding or edit in a future version.")
-                        .font(.dsSans(DS.FontSize.sm))
-                        .foregroundStyle(DS.textB)
-                }
+                let ec = state.profile.emergencyContact
+                row("Name", ec.name.isEmpty ? "—" : ec.name)
+                row("Relationship", ec.relationship.isEmpty ? "—" : ec.relationship)
+                row("Phone", ec.phone.isEmpty ? "—" : ec.phone)
+                row("Consent", ec.consentToNotify ? "Given" : "Not given")
             }
         }
     }

@@ -5,6 +5,20 @@
 
 import Foundation
 
+struct CommunityMatchSeed: Identifiable {
+    let id: UUID
+    let name: String
+    let detail: String
+    let avatar: String
+    let conditions: [String]
+    let lifeStage: String
+    let age: Int
+    let interests: [String]
+    let breastfeeding: Bool
+    let verified: Bool
+    let isGroup: Bool
+}
+
 enum Similarity {
 
     static func score(profile: UserProfile, match: CommunityMatchSeed) -> Int {
@@ -28,13 +42,12 @@ enum Similarity {
 
     static func matches(for profile: UserProfile) -> [CommunityMatch] {
         MockData.communitySeeds.map { seed in
-            let pct = score(profile: profile, match: seed)
-            return CommunityMatch(
+            CommunityMatch(
                 id: seed.id,
                 name: seed.name,
                 detail: seed.detail,
                 avatar: seed.avatar,
-                matchPercent: pct,
+                matchPercent: score(profile: profile, match: seed),
                 matchReason: reason(profile: profile, match: seed),
                 verified: seed.verified,
                 isGroup: seed.isGroup
@@ -42,18 +55,4 @@ enum Similarity {
         }
         .sorted { $0.matchPercent > $1.matchPercent }
     }
-}
-
-struct CommunityMatchSeed: Identifiable {
-    let id: UUID
-    let name: String
-    let detail: String
-    let avatar: String
-    let conditions: [String]
-    let lifeStage: String
-    let age: Int
-    let interests: [String]
-    let breastfeeding: Bool
-    let verified: Bool
-    let isGroup: Bool
 }

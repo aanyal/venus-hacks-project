@@ -39,8 +39,9 @@ struct UserProfile: Codable, Equatable {
     var breastfeeding: Bool = false
     var conditions: [String] = []
     var pregnancyComplications: [String] = []
-    var healthScreeningAnswers: [Bool] = Array(repeating: false, count: 8)
-    var emergencyContact: EmergencyContact?
+    /// `nil` = unanswered (required during onboarding)
+    var healthScreeningAnswers: [Bool?] = Array(repeating: nil, count: 8)
+    var emergencyContact: EmergencyContact = EmergencyContact()
     var communityMatchingEnabled: Bool = false
     var lastLoginDaysAgo: Int = 0
     var hasCompletedOnboarding: Bool = false
@@ -97,10 +98,9 @@ struct RoadmapMilestone: Identifiable {
 }
 
 enum RoadmapTab: String, CaseIterable {
-    case pregnancy = "Pregnancy 🤰"
-    case general = "General 💊"
-    case postpartum = "Postpartum 🌸"
-    case lifetime = "Lifetime 🌟"
+    case pregnancy = "Pregnancy"
+    case postpartum = "Postpartum"
+    case lifetime = "Lifetime"
 }
 
 struct ChatMessage: Identifiable, Equatable {

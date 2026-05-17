@@ -7,6 +7,7 @@ import SwiftUI
 
 struct ReelsView: View {
     @Bindable var state: AppState
+    @State private var showShareSheet = false
 
     private var reels: [ReelItem] { state.sortedReels }
     private var reel: ReelItem {
@@ -136,6 +137,9 @@ struct ReelsView: View {
                 if state.likedReels.contains(reel.id) { state.likedReels.remove(reel.id) }
                 else { state.likedReels.insert(reel.id) }
             }
+            actionBtn("square.and.arrow.up", "Share") {
+                showShareSheet = true
+            }
             actionBtn("bubble.right", "Chat") {}
             actionBtn(
                 state.savedReels.contains(reel.id) ? "bookmark.fill" : "bookmark",
@@ -145,6 +149,13 @@ struct ReelsView: View {
                 else { state.savedReels.insert(reel.id) }
             }
         }
+        .sheet(isPresented: $showShareSheet) {
+            ShareSheet(items: [shareText])
+        }
+    }
+
+    private var shareText: String {
+        "\(reel.title)\n\n\(reel.creator) on Cardia — heart-health education & self-advocacy. Not medical advice."
     }
 
     private func actionBtn(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
