@@ -20,6 +20,7 @@ private extension Color {
 
 struct AdvocacyView: View {
     @Bindable var state: AppState
+    @State private var animateListening = false
 
     private var advocateTopics: [AdvocateFocus] {
         Personalization.advocateFocus(for: state.profile)
@@ -27,6 +28,14 @@ struct AdvocacyView: View {
 
     private var questions: [String] {
         Personalization.practiceQuestions(for: state.profile)
+    }
+
+    private var simulatedVoicePresets: [String] {
+        [
+            "I know stress can affect symptoms, but this feels different from my usual pattern.",
+            "I’m not comfortable dismissing this yet. I want to discuss what we should rule out.",
+            "What symptoms should make me call or seek urgent care?",
+        ]
     }
 
     var body: some View {
@@ -44,6 +53,9 @@ struct AdvocacyView: View {
                 }
                 .padding(.horizontal, 20)
             }
+        }
+        .sheet(isPresented: $state.showSimulatedVoiceSheet) {
+            simulatedVoiceSheet
         }
     }
 
@@ -227,7 +239,7 @@ struct AdvocacyView: View {
                             filled: true
                         ) {
                             if state.convoOpen {
-                                state.convoOpen = false
+                                state.closePractice()
                             } else {
                                 state.startPractice(currentScenario)
                             }
@@ -246,6 +258,24 @@ struct AdvocacyView: View {
                         }
                         .disabled(state.isAwaitingPracticeReply && state.recording == false)
                     }
+
+                    if state.practiceStatusMessage.isEmpty == false {
+                        HStack(spacing: 10) {
+                            if showsListeningBubble {
+                                listeningBubble
+                            }
+
+                            Text(state.practiceStatusMessage)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundStyle(Color.advocacyMuted)
+                        }
+                    }
+
+                    Text("Voice: \(state.speechVoiceDescription)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.advocacyMuted.opacity(0.85))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
                 .padding(20)
 
@@ -380,7 +410,7 @@ struct AdvocacyView: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .disabled(state.isAwaitingPracticeReply)
+                    .disabled(state.isAwaitingPracticeReply || state.recording)
                 }
 
                 HStack(spacing: 10) {
@@ -404,6 +434,124 @@ struct AdvocacyView: View {
 
     private var currentScenario: PracticeScenario {
         state.practiceScenario
+    }
+
+    private var showsListeningBubble: Bool {
+        state.recording || state.practiceStatusMessage == "Listening…" || state.practiceStatusMessage == "Transcribing…"
+    }
+
+    private var listeningBubble: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(Color.advocacyRose.opacity(0.9))
+                    .frame(width: 7, height: 7)
+                    .scaleEffect(animateListening ? (index == 1 ? 1.15 : 0.9) : 0.75)
+                    .opacity(animateListening ? (index == 1 ? 1 : 0.55) : 0.35)
+                    .animation(
+                        .easeInOut(duration: 0.6)
+                            .repeatForever(autoreverses: true)
+                            .delay(Double(index) * 0.12),
+                        value: animateListening
+                    )
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(Color.white.opacity(0.24))
+        .overlay(
+            Capsule()
+                .stroke(Color.advocacyGlassStroke, lineWidth: 1)
+        )
+        .clipShape(Capsule())
+        .onAppear {
+            guard animateListening == false else { return }
+            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
+                animateListening = true
+            }
+        }
+    }
+
+    private var simulatedVoiceSheet: some View {
+        NavigationStack {
+            ZStack {
+                LinearGradient(
+                    colors: [.advocacyBg0, .advocacyBg1],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Voice Demo")
+                                .font(.system(size: 28, weight: .semibold, design: .serif))
+                                .foregroundStyle(Color.advocacyInk)
+
+                            Text("Use a preset or type what the user would have said. We’ll animate it like a transcript, then send it to the doctor simulator.")
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundStyle(Color.advocacyBody)
+                                .lineSpacing(4)
+                        }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            cardLabel("Quick Presets")
+
+                            ForEach(simulatedVoicePresets, id: \.self) { preset in
+                                Button {
+                                    state.simulatedVoiceTranscript = preset
+                                } label: {
+                                    Text(preset)
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundStyle(Color.advocacyBody)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 12)
+                                        .background(Color.white.opacity(0.2))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                                .stroke(Color.advocacyGlassStroke, lineWidth: 1)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            cardLabel("Simulated Transcript")
+
+                            TextEditor(text: $state.simulatedVoiceTranscript)
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundStyle(Color.advocacyBody)
+                                .scrollContentBackground(.hidden)
+                                .frame(minHeight: 150)
+                                .padding(12)
+                                .background(Color.white.opacity(0.24))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(Color.advocacyGlassStroke, lineWidth: 1)
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        }
+
+                        HStack(spacing: 10) {
+                            secondaryControlButton(title: "Cancel", systemImage: "xmark") {
+                                state.showSimulatedVoiceSheet = false
+                            }
+
+                            primaryControlButton(title: "Use Transcript", systemImage: "waveform", filled: true) {
+                                state.applySimulatedVoiceTranscript()
+                            }
+                        }
+                    }
+                    .padding(20)
+                }
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var statusText: String {
