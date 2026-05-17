@@ -10,7 +10,7 @@ Pregnancy and postpartum health can reveal important signs about a person’s lo
 
 Cardia helps users understand these connections through clear education, personalized recommendations, advocacy support, and community-centered resources.
 
-Our goal is to make heart health information during pregnancy and postpartum as simple, accessible, and actionable as possible.
+Our goal is to make heart health information during pregnancy and postpartum as simple, accessible, and actionable as possible. We want users to feel seen!
 
 ---
 
