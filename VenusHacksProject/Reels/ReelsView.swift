@@ -156,10 +156,6 @@ struct ReelsView: View {
                 .lineSpacing(4)
                 .shadow(color: .black.opacity(0.20), radius: 3, y: 1)
 
-            if let reason = state.healthRecommendationReason(for: reel) {
-                whyThisReel(reason)
-            }
-
             // Creator row — frosted glass pill
             HStack(spacing: 10) {
                 // Avatar
@@ -191,33 +187,6 @@ struct ReelsView: View {
                     .stroke(.white.opacity(0.25), lineWidth: 1)
             )
         }
-    }
-
-    private func whyThisReel(_ reason: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 5) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 10, weight: .semibold))
-                Text("Why am I seeing this?")
-                    .font(.system(size: 10, weight: .semibold))
-                    .textCase(.uppercase)
-            }
-            .foregroundStyle(.white.opacity(0.86))
-
-            Text(reason)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(.white.opacity(0.86))
-                .lineSpacing(3)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(.white.opacity(0.14))
-        .background(.ultraThinMaterial.opacity(0.5))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(.white.opacity(0.22), lineWidth: 1)
-        )
     }
 
     // MARK: - Side Actions

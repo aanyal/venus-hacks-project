@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		03E7F50E2FBA1405006A2862 /* VenusHacksProject.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = VenusHacksProject.entitlements; sourceTree = "<group>"; };
 		2EDC440B2FB8FB7400D74DC3 /* VenusHacksProject.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VenusHacksProject.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -35,7 +34,6 @@
 			children = (
 				2EDC440D2FB8FB7400D74DC3 /* VenusHacksProject */,
 				2EDC440C2FB8FB7400D74DC3 /* Products */,
-				03E7F50E2FBA1405006A2862 /* VenusHacksProject.entitlements */,
 			);
 			sourceTree = "<group>";
 		};

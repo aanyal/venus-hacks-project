@@ -7,10 +7,7 @@ import Foundation
 
 enum SafetyText {
     static let disclaimer =
-        "This app provides educational support and is not a medical device. If you have severe symptoms, contact emergency care or your care team."
-
-    static let healthKitPrivacy =
-        "We use Apple Health data only to personalize educational content. This app does not diagnose medical conditions."
+        "This app is for education and self-advocacy, not diagnosis or medical treatment."
 
     static let onboardingReassurance =
         "Your answers personalize education and reminders. We do not diagnose."

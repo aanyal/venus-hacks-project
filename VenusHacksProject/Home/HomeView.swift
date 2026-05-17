@@ -138,7 +138,6 @@ struct HomeView: View {
     private var contentStack: some View {
         VStack(alignment: .leading, spacing: 18) {
             appointmentCard
-            healthKitCard
             statsSection
             guidanceCard
             DisclaimerFooter()
@@ -197,95 +196,6 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
             }
-        }
-    }
-
-    private var healthKitCard: some View {
-        frostedCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 8) {
-                    Image(systemName: "heart.text.square")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(Color.homeRose)
-
-                    sectionLabel("Apple Health")
-                }
-
-                Text("Connect Apple Health")
-                    .font(.system(size: 22, weight: .semibold, design: .serif))
-                    .foregroundStyle(Color.homeInk)
-
-                Text(SafetyText.healthKitPrivacy)
-                    .font(.system(size: 14, weight: .regular))
-                    .foregroundStyle(Color.homeBody)
-                    .lineSpacing(4)
-
-                Text("Raw Health data stays on device and is not used for ads or marketing.")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(Color.homeMuted)
-                    .lineSpacing(3)
-
-                if let summary = state.healthPersonalizationSummary {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Color.homeTeal)
-
-                        Text(summary)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color.homeBody)
-                            .lineSpacing(3)
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(0.24))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
-
-                if state.healthStatusMessage.isEmpty == false {
-                    Text(state.healthStatusMessage)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(state.healthConnectionStatus == .failed ? Color.homeRose : Color.homeMuted)
-                        .lineSpacing(3)
-                }
-
-                Button(action: state.connectAppleHealth) {
-                    HStack(spacing: 8) {
-                        Image(systemName: state.healthConnectionStatus == .connected ? "arrow.clockwise" : "link")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text(healthButtonTitle)
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 12)
-                    .background(
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    colors: [.homeRose, .homeRoseHi],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                    )
-                    .shadow(color: Color.homeRose.opacity(0.22), radius: 10, y: 5)
-                }
-                .buttonStyle(.plain)
-                .disabled(state.healthConnectionStatus == .connecting)
-                .opacity(state.healthConnectionStatus == .connecting ? 0.7 : 1)
-            }
-        }
-    }
-
-    private var healthButtonTitle: String {
-        switch state.healthConnectionStatus {
-        case .notConnected, .failed:
-            return "Connect Apple Health"
-        case .connecting:
-            return "Connecting..."
-        case .connected:
-            return "Refresh Apple Health"
         }
     }
 

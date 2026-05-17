@@ -11,15 +11,11 @@ import SwiftUI
 final class AppState {
     private let speechTranscriptionService = SpeechTranscriptionService()
     private let speechPlaybackService = SpeechPlaybackService()
-    private let healthKitManager = HealthKitManager.shared
 
     var profile = UserProfile()
     var selectedTab = 0
     var showProfile = false
     var showRoadmapUpdate = false
-    var healthTags = HealthDerivedTags()
-    var healthConnectionStatus: HealthConnectionStatus = .notConnected
-    var healthStatusMessage = ""
 
     var likedReels: Set<Int> = []
     var savedReels: Set<Int> = []
@@ -45,17 +41,7 @@ final class AppState {
     }
 
     var sortedReels: [ReelItem] {
-        Personalization.sortedReels(profile: profile, liked: likedReels, saved: savedReels, supplementalTags: healthTags.allTags)
-    }
-
-    var healthPersonalizationSummary: String? {
-        guard healthConnectionStatus == .connected, healthTags.dataSources.isEmpty == false else { return nil }
-        let sources = healthTags.dataSources.sorted()
-        if sources.count == 1 {
-            return "Personalized using \(sources[0]) data."
-        }
-        let displayedSources = sources.prefix(4).joined(separator: ", ")
-        return "Personalized using \(displayedSources) data."
+        Personalization.sortedReels(profile: profile, liked: likedReels, saved: savedReels)
     }
 
     var communityMatches: [CommunityMatch] {
@@ -72,33 +58,6 @@ final class AppState {
         profile.hasCompletedOnboarding = true
         profile.lastLoginDaysAgo = 0
         save()
-    }
-
-    func connectAppleHealth() {
-        guard healthConnectionStatus != .connecting else { return }
-        healthConnectionStatus = .connecting
-        healthStatusMessage = ""
-
-        Task {
-            do {
-                try await healthKitManager.requestReadAuthorization()
-                let signal = try await healthKitManager.fetchHealthSignal()
-                healthTags = HealthTagMapper.map(signal)
-                healthConnectionStatus = .connected
-                healthStatusMessage = healthTags.isEmpty
-                    ? "Apple Health is connected. No recent readable data was found for personalization yet."
-                    : "Apple Health is connected for educational personalization."
-                currentReelIndex = 0
-            } catch {
-                healthConnectionStatus = .failed
-                healthStatusMessage = error.localizedDescription
-            }
-        }
-    }
-
-    func healthRecommendationReason(for reel: ReelItem) -> String? {
-        guard healthConnectionStatus == .connected else { return nil }
-        return HealthTagMapper.explanation(for: reel, tags: healthTags)
     }
 
     func startPractice(_ scenario: PracticeScenario = .generalVisit, prefill: String? = nil) {
@@ -278,11 +237,4 @@ final class AppState {
               let decoded = try? JSONDecoder().decode(UserProfile.self, from: data) else { return }
         profile = decoded
     }
-}
-
-enum HealthConnectionStatus: Equatable {
-    case notConnected
-    case connecting
-    case connected
-    case failed
 }
