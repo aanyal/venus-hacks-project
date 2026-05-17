@@ -505,7 +505,9 @@ struct RoadmapUpdateSheet: View {
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Update Roadmap")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

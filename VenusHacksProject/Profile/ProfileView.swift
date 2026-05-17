@@ -40,7 +40,9 @@ struct ProfileView: View {
                     .padding(.horizontal, 20)
                 }
             }
+            #if os(iOS)
             .toolbar(.hidden, for: .navigationBar)
+            #endif
             .safeAreaInset(edge: .top) {
                 topBar
                     .padding(.horizontal, 20)
