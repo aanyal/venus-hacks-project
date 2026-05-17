@@ -45,8 +45,9 @@ enum ReelsPersonalization {
             if index == 0 {
                 presentation.videoURL =
                 Bundle.main.url(forResource: "testvidheart", withExtension: "MP4")
-            } else if index == 2 {
-                presentation.videoURL = URL(string: "https://www.w3schools.com/html/movie.mp4")
+            } else if index == 1 {
+                presentation.videoURL =
+                Bundle.main.url(forResource: "pree", withExtension: "mp4")
             }
             return presentation
         }
