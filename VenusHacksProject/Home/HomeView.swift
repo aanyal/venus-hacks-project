@@ -49,6 +49,11 @@ struct HomeView: View {
                 .padding(.horizontal, 20)
             }
         }
+        .task {
+            if state.homeProfileSummary.isEmpty {
+                state.refreshHomeSummary()
+            }
+        }
     }
 
     private var backgroundLayer: some View {
@@ -138,8 +143,10 @@ struct HomeView: View {
     private var contentStack: some View {
         VStack(alignment: .leading, spacing: 18) {
             appointmentCard
+            summaryCard
             statsSection
-            guidanceCard
+            nextStepsCard
+            heartHealthCard
             DisclaimerFooter()
                 .padding(.top, 2)
         }
@@ -213,32 +220,129 @@ struct HomeView: View {
         return "Next step: Keep track of any new symptoms, bring questions to your next visit, and use your feed to build confidence before check-ins."
     }
 
-    private var guidanceCard: some View {
+    private var summaryText: String {
+        if state.homeProfileSummary.isEmpty {
+            return guidanceSummary
+        }
+        return state.homeProfileSummary
+    }
+
+    private var nextStepItems: [String] {
+        var items = [
+            Personalization.advocacyNextStep(for: state.profile),
+            "Write down one symptom pattern, question, or concern before your next visit so it is easier to explain clearly.",
+        ]
+
+        if state.healthDerivedTags.dataSources.contains("blood pressure") {
+            items.append("Bring recent blood pressure readings to your next check-in and ask what range matters for you.")
+        } else if state.awarenessLevel != .general {
+            items.append("Ask your care team which heart-health signs should prompt a sooner call.")
+        } else {
+            items.append("Keep learning what symptoms are routine, what should be tracked, and what should be discussed early.")
+        }
+
+        return items
+    }
+
+    private var heartHealthText: String {
+        switch state.healthEnhancedProfile.awarenessLevel {
+        case .general:
+            return "Your heart-health focus is preventive: movement, rest, symptom awareness, and clear questions at routine check-ins."
+        case .heartAware:
+            return "Your profile points toward more heart-health awareness, especially around blood pressure, symptoms, screening, and follow-up timing."
+        case .higherAttention:
+            return "Your profile suggests closer care planning may be useful. This app cannot diagnose, but severe, sudden, or concerning symptoms should be handled urgently."
+        }
+    }
+
+    private var summaryCard: some View {
         frostedCard {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 8) {
-                    Image(systemName: "waveform.path.ecg")
+                    Image(systemName: "sparkles")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(Color.homeRose)
 
-                    sectionLabel("Care Guidance")
+                    sectionLabel("Summary")
                 }
-                
-                Text(guidanceSummary)
+
+                Text(summaryText)
                     .font(.system(size: 15, weight: .regular))
                     .foregroundStyle(Color.homeBody)
                     .lineSpacing(5)
+
+                Text(state.homeSummaryStatus)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.homeMuted)
+
+                FlowLayout(spacing: 8) {
+                    insightTag(state.healthDerivedTags.dataSources.isEmpty ? "Profile Based" : "Apple Health")
+                    insightTag(state.healthEnhancedProfile.awarenessLevel.displayTitle)
+                    insightTag("Advocacy")
+                }
+            }
+        }
+    }
+
+    private var nextStepsCard: some View {
+        frostedCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checklist")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.homeTeal)
+
+                    sectionLabel("Next Steps")
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(Array(nextStepItems.enumerated()), id: \.offset) { index, item in
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("\(index + 1)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 22, height: 22)
+                                .background(Color.homeTeal)
+                                .clipShape(Circle())
+
+                            Text(item)
+                                .font(.system(size: 14, weight: .regular))
+                                .foregroundStyle(Color.homeBody)
+                                .lineSpacing(4)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var heartHealthCard: some View {
+        frostedCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    Image(systemName: "heart.text.square")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.homeRose)
+
+                    sectionLabel("Heart Health")
+                }
+
+                Text(heartHealthText)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(Color.homeBody)
+                    .lineSpacing(5)
+
+                VStack(spacing: 10) {
+                    healthMetricRow(symbol: "heart.fill", label: "Resting heart rate", value: heartRateValue)
+                    healthMetricRow(symbol: "waveform.path.ecg", label: "Blood pressure", value: bloodPressureValue)
+                    healthMetricRow(symbol: "moon.stars.fill", label: "Sleep", value: sleepValue)
+                }
 
                 Text(guidanceStepText)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.homeMuted)
                     .lineSpacing(4)
-
-                FlowLayout(spacing: 8) {
-                    insightTag("Summary")
-                    insightTag("Next Steps")
-                    insightTag("Heart Health")
-                }
             }
         }
     }
@@ -248,17 +352,60 @@ struct HomeView: View {
             VStack(alignment: .leading, spacing: 4) {
                 sectionLabel("Daily Snapshot")
 
-                Text("Sample data for the demo experience. Not a diagnosis.")
+                Text(state.healthDerivedTags.dataSources.isEmpty ? "Sample data for the demo experience. Not a diagnosis." : "Apple Health snapshot. Not a diagnosis.")
                     .font(.system(size: 13, weight: .regular))
                     .foregroundStyle(Color.homeMuted)
             }
 
             LazyVGrid(columns: statColumns, spacing: 12) {
-                statCard(symbol: "figure.walk", label: "Steps", value: "7,843", color: .homeTeal, progress: 0.78)
-                statCard(symbol: "heart.text.square", label: "Heart Rate", value: "72 BPM", color: .homeRose, progress: 0.72)
-                statCard(symbol: "moon.stars", label: "Sleep", value: "7.2 H", color: .homeLavender, progress: 0.85)
+                statCard(symbol: "figure.walk", label: "Steps", value: stepsValue, color: .homeTeal, progress: stepsProgress)
+                statCard(symbol: "heart.text.square", label: "Heart Rate", value: heartRateValue, color: .homeRose, progress: heartRateProgress)
+                statCard(symbol: "moon.stars", label: "Sleep", value: sleepValue, color: .homeLavender, progress: sleepProgress)
             }
         }
+    }
+
+    private var stepsValue: String {
+        guard let steps = state.healthSignal.stepsToday else { return "7,843" }
+        return NumberFormatter.localizedString(from: NSNumber(value: Int(steps.rounded())), number: .decimal)
+    }
+
+    private var heartRateValue: String {
+        if let restingHeartRate = state.healthSignal.restingHeartRate {
+            return "\(Int(restingHeartRate.rounded())) BPM"
+        }
+        if let heartRate = state.healthSignal.heartRate {
+            return "\(Int(heartRate.rounded())) BPM"
+        }
+        return "72 BPM"
+    }
+
+    private var bloodPressureValue: String {
+        guard let systolic = state.healthSignal.systolicBP,
+              let diastolic = state.healthSignal.diastolicBP else {
+            return "Not tracked"
+        }
+        return "\(Int(systolic.rounded()))/\(Int(diastolic.rounded()))"
+    }
+
+    private var sleepValue: String {
+        guard let sleep = state.healthSignal.sleepHoursLastNight else { return "7.2 H" }
+        return "\(String(format: "%.1f", sleep)) H"
+    }
+
+    private var stepsProgress: CGFloat {
+        guard let steps = state.healthSignal.stepsToday else { return 0.78 }
+        return min(CGFloat(steps / 10_000), 1)
+    }
+
+    private var heartRateProgress: CGFloat {
+        let rate = state.healthSignal.restingHeartRate ?? state.healthSignal.heartRate ?? 72
+        return min(max(CGFloat(rate / 100), 0.25), 1)
+    }
+
+    private var sleepProgress: CGFloat {
+        guard let sleep = state.healthSignal.sleepHoursLastNight else { return 0.85 }
+        return min(CGFloat(sleep / 8), 1)
     }
 
     private func statCard(
@@ -309,6 +456,29 @@ struct HomeView: View {
                 .frame(height: 6)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func healthMetricRow(symbol: String, label: String, value: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.homeRose)
+                .frame(width: 30, height: 30)
+                .background(Color.white.opacity(0.28))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Color.homeBody)
+
+            Spacer(minLength: 8)
+
+            Text(value)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color.homeInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
     }
 

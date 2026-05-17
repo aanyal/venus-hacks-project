@@ -15,6 +15,75 @@ struct AdvocacyAIService {
         apiKey != nil
     }
 
+    func generateHomeProfileSummary(
+        profile: UserProfile,
+        healthSignal: HealthSignal,
+        personalizationProfile: PersonalizationProfile,
+        advocacySummary: String
+    ) async throws -> String {
+        guard let apiKey else {
+            throw AdvocacyAIError.missingAPIKey
+        }
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let payload = GroqChatCompletionRequest(
+            model: ProcessInfo.processInfo.environment["GROQ_MODEL"] ?? defaultModel,
+            messages: [
+                .init(
+                    role: "system",
+                    content: """
+                    You write concise, supportive profile summaries for a women's heart-health and care-advocacy app.
+                    Rules:
+                    - Do not diagnose.
+                    - Do not prescribe treatment.
+                    - Mention Apple Health data only as recent tracked information, not medical proof.
+                    - Combine profile context, heart-health awareness, advocacy support, and encouragement.
+                    - Keep the summary to 55-75 words.
+                    - Use warm, plain language.
+                    - End with one practical encouragement.
+                    """
+                ),
+                .init(
+                    role: "user",
+                    content: homeSummaryContext(
+                        profile: profile,
+                        healthSignal: healthSignal,
+                        personalizationProfile: personalizationProfile,
+                        advocacySummary: advocacySummary
+                    )
+                ),
+            ],
+            temperature: 0.65
+        )
+
+        request.httpBody = try JSONEncoder().encode(payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AdvocacyAIError.invalidResponse
+        }
+
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            let apiError = try? JSONDecoder().decode(GroqErrorEnvelope.self, from: data)
+            throw AdvocacyAIError.apiFailure(
+                apiError?.error.message ?? "Groq request failed with status \(httpResponse.statusCode)."
+            )
+        }
+
+        let decoded = try JSONDecoder().decode(GroqChatCompletionResponse.self, from: data)
+        let text = decoded.choices.first?.message.content?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        guard text.isEmpty == false else {
+            throw AdvocacyAIError.emptyReply
+        }
+
+        return text
+    }
+
     func generateReply(
         messages: [ChatMessage],
         profile: UserProfile,
@@ -150,6 +219,52 @@ struct AdvocacyAIService {
         - Relevant conditions: \(profile.conditions.isEmpty ? "None provided" : profile.conditions.joined(separator: ", "))
         - Pregnancy complications: \(profile.pregnancyComplications.isEmpty ? "None provided" : profile.pregnancyComplications.joined(separator: ", "))
         """
+    }
+
+    private func homeSummaryContext(
+        profile: UserProfile,
+        healthSignal: HealthSignal,
+        personalizationProfile: PersonalizationProfile,
+        advocacySummary: String
+    ) -> String {
+        """
+        User profile:
+        - Name: \(profile.name.isEmpty ? "Not provided" : profile.name)
+        - Age: \(profile.age == 0 ? "Not provided" : String(profile.age))
+        - Life stage: \(profile.lifeStageLabel)
+        - Weeks pregnant: \(profile.weeksPregnant.map(String.init) ?? "Not provided")
+        - Weeks postpartum: \(profile.weeksPostpartum.map(String.init) ?? "Not provided")
+        - Conditions: \(profile.conditions.isEmpty ? "None provided" : profile.conditions.joined(separator: ", "))
+        - Pregnancy complications: \(profile.pregnancyComplications.isEmpty ? "None provided" : profile.pregnancyComplications.joined(separator: ", "))
+        - Awareness level: \(personalizationProfile.awarenessLevel.displayTitle)
+        - Personalized insight: \(personalizationProfile.primaryInsight)
+        - Advocacy focus: \(advocacySummary)
+
+        Apple Health:
+        - Heart rate: \(formattedBPM(healthSignal.heartRate))
+        - Resting heart rate: \(formattedBPM(healthSignal.restingHeartRate))
+        - Blood pressure: \(formattedBloodPressure(healthSignal))
+        - Blood glucose: \(formattedNumber(healthSignal.bloodGlucose, suffix: " mg/dL"))
+        - Steps today: \(formattedNumber(healthSignal.stepsToday, suffix: " steps"))
+        - Sleep last night: \(formattedNumber(healthSignal.sleepHoursLastNight, suffix: " hours"))
+        - Pregnancy status: \(healthSignal.isPregnant.map { $0 ? "Pregnant" : "Not pregnant" } ?? "Not available")
+        """
+    }
+
+    private func formattedBPM(_ value: Double?) -> String {
+        formattedNumber(value, suffix: " BPM")
+    }
+
+    private func formattedBloodPressure(_ signal: HealthSignal) -> String {
+        guard let systolic = signal.systolicBP, let diastolic = signal.diastolicBP else {
+            return "Not available"
+        }
+        return "\(Int(systolic.rounded()))/\(Int(diastolic.rounded()))"
+    }
+
+    private func formattedNumber(_ value: Double?, suffix: String) -> String {
+        guard let value else { return "Not available" }
+        return "\(Int(value.rounded()))\(suffix)"
     }
 }
 
