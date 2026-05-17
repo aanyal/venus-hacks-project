@@ -7,7 +7,6 @@ import AVFAudio
 import Foundation
 import Speech
 
-@MainActor
 final class SpeechTranscriptionService: NSObject {
     private let audioEngine = AVAudioEngine()
     private var speechRecognizer = SFSpeechRecognizer(locale: .current)
@@ -45,14 +44,13 @@ final class SpeechTranscriptionService: NSObject {
             throw SpeechTranscriptionError.recognizerUnavailable
         }
 
-        #if os(iOS) || os(visionOS)
-        let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.duckOthers, .defaultToSpeaker])
-        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        #endif
+        try configureRecordingSession()
 
         let request = SFSpeechAudioBufferRecognitionRequest()
         request.shouldReportPartialResults = true
+        if #available(iOS 13, macOS 10.15, *) {
+            request.requiresOnDeviceRecognition = false
+        }
         recognitionRequest = request
 
         let inputNode = audioEngine.inputNode
@@ -71,7 +69,9 @@ final class SpeechTranscriptionService: NSObject {
             if let result {
                 let transcript = result.bestTranscription.formattedString
                 self.currentTranscript = transcript
-                self.transcriptUpdate?(transcript)
+                DispatchQueue.main.async {
+                    self.transcriptUpdate?(transcript)
+                }
 
                 if self.isStopping, result.isFinal {
                     self.finishStop(with: transcript)
@@ -83,8 +83,10 @@ final class SpeechTranscriptionService: NSObject {
                     self.finishStop(with: self.currentTranscript)
                 } else {
                     self.cleanupRecognition()
-                    self.stopContinuation?.resume(throwing: error)
-                    self.stopContinuation = nil
+                    if let stopContinuation = self.stopContinuation {
+                        stopContinuation.resume(throwing: error)
+                        self.stopContinuation = nil
+                    }
                 }
             }
         }
@@ -103,7 +105,7 @@ final class SpeechTranscriptionService: NSObject {
         return try await withCheckedThrowingContinuation { continuation in
             stopContinuation = continuation
 
-            Task { @MainActor [weak self] in
+            Task { [weak self] in
                 try? await Task.sleep(for: .milliseconds(450))
                 guard let self, self.stopContinuation != nil else { return }
                 self.finishStop(with: self.currentTranscript)
@@ -128,9 +130,22 @@ final class SpeechTranscriptionService: NSObject {
         recognitionTask = nil
         recognitionRequest = nil
         isStopping = false
+        transcriptUpdate = nil
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        audioEngine.inputNode.removeTap(onBus: 0)
 
         #if os(iOS) || os(visionOS)
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        #endif
+    }
+
+    private func configureRecordingSession() throws {
+        #if os(iOS) || os(visionOS)
+        let audioSession = AVAudioSession.sharedInstance()
+        try audioSession.setCategory(.record, mode: .measurement, options: [.duckOthers])
+        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         #endif
     }
 

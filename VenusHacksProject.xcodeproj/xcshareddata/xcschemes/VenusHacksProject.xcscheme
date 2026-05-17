@@ -53,8 +53,13 @@
       </BuildableProductRunnable>
       <EnvironmentVariables>
          <EnvironmentVariable
+            key = "GROQ_MODEL"
+            value = "llama-3.3-70b-versatile"
+            isEnabled = "YES">
+         </EnvironmentVariable>
+         <EnvironmentVariable
             key = "GROQ_API_KEY"
-            value = "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"
+            value = "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"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

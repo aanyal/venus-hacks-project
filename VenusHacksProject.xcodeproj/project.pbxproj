@@ -246,6 +246,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VenusHacksProject/VenusHacksProject.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FTCKQU63F3;
@@ -254,6 +255,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Cardia reads your steps, heart rate, sleep, and activity rings from Apple Health to show your daily snapshot. This is for awareness only and is not a diagnosis.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Cardia does not write health data to Apple Health.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Cardia uses the microphone so you can practice speaking to the doctor simulator.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Cardia transcribes your voice into text so you can practice self-advocacy conversations.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -269,6 +274,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.3;
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = VenusHacks.VenusHacksProject;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -290,6 +296,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VenusHacksProject/VenusHacksProject.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = FTCKQU63F3;
@@ -298,6 +305,10 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Cardia reads your steps, heart rate, sleep, and activity rings from Apple Health to show your daily snapshot. This is for awareness only and is not a diagnosis.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Cardia does not write health data to Apple Health.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Cardia uses the microphone so you can practice speaking to the doctor simulator.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Cardia transcribes your voice into text so you can practice self-advocacy conversations.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -313,6 +324,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.3;
 				MARKETING_VERSION = 1.0;
+				NEW_SETTING = "";
 				PRODUCT_BUNDLE_IDENTIFIER = VenusHacks.VenusHacksProject;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;

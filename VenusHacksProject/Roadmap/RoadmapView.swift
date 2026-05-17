@@ -95,7 +95,7 @@ struct RoadmapView: View {
                     updateButton
                         .padding(.horizontal, 20)
                         .padding(.top, 26)
-                        .padding(.bottom, 52)
+                        .padding(.bottom, 132)
                 }
             }
         }
@@ -505,7 +505,9 @@ struct RoadmapUpdateSheet: View {
                 .scrollContentBackground(.hidden)
             }
             .navigationTitle("Update Roadmap")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }

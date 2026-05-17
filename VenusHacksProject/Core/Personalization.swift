@@ -182,26 +182,26 @@ enum Personalization {
 
             if turnCount <= 1 {
                 if strongSignalCount >= 2 {
-                    return "I understand you are concerned, but this may still be something like stress, recovery, or a milder issue at first. Tell me what feels most different and what you want to make sure we do not overlook."
+                    return "I understand you are concerned, but based on what you have shared so far this could still be stress, recovery, or something milder. I would not jump to a more serious explanation yet."
                 }
-                return "At first glance this may still be stress, routine recovery, or something we monitor before escalating. What feels most concerning to you right now?"
+                return "At first glance this may still be stress, routine recovery, or something we monitor before escalating. I would usually start there rather than assume something more serious."
             }
 
             if turnCount == 2 {
                 if strongSignalCount >= 2 {
-                    return "I hear that you want to press on this. If this feels outside your usual pattern, a reasonable next step is asking what should be ruled out and what symptoms should prompt urgent follow-up."
+                    return "I hear that you want to press on this, but I am still not convinced this points to something urgent from what you have said so far. It may still make sense to monitor before escalating."
                 }
-                return "It may still be reasonable to monitor this first, but I can see you are still concerned. What specifically worries you most, and what are you hoping we clarify today?"
+                return "It may still be reasonable to monitor this first. I understand that you are worried, but I would not change course yet based on this alone."
             }
 
             if strongSignalCount >= 2 {
-                return "I understand why you want to press on this. A strong next step would be asking what needs to be ruled out, what symptoms should prompt urgent follow-up, and whether any further evaluation is appropriate today."
+                return "I can see that you are being persistent about this, and I understand why you want a clearer answer. At this point it would be reasonable to discuss what should be ruled out and when follow-up should happen."
             }
 
             if strongSignalCount == 1 {
-                return "It may still be stress, recovery, or something we can monitor, but I hear that you are concerned. What feels most different from your usual pattern, and what are you most worried we might miss?"
+                return "It may still be stress, recovery, or something we can monitor, but I hear that you are still concerned. I am not yet persuaded that this needs more than closer attention."
             }
-            return "This may still be stress, routine recovery, or something to monitor first. Can you tell me what feels most concerning and why you feel it needs more discussion today?"
+            return "This may still be stress, routine recovery, or something to monitor first. From my perspective, it does not clearly point to something more serious yet."
         case .followUpQuestions:
             if lower.contains("test") || lower.contains("monitor") || lower.contains("follow-up") || lower.contains("records") {
                 return "Good follow-up question. Ask for the timeline, what the result would change, and whether you should keep copies of records or imaging."
