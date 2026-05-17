@@ -5,19 +5,18 @@
 //  Created by slmrc on 5/17/26.
 //
 
-//
-
-
 import AVKit
 import SwiftUI
+
+#if canImport(UIKit)
+import UIKit
 
 // Fullscreen, no-controls video layer — exactly like Instagram Reels
 struct PlayerView: UIViewRepresentable {
     let player: AVPlayer
 
     func makeUIView(context: Context) -> PlayerUIView {
-        let view = PlayerUIView(player: player)
-        return view
+        PlayerUIView(player: player)
     }
 
     func updateUIView(_ uiView: PlayerUIView, context: Context) {
@@ -25,8 +24,8 @@ struct PlayerView: UIViewRepresentable {
     }
 }
 
-class PlayerUIView: UIView {
-    private var playerLayer = AVPlayerLayer()
+final class PlayerUIView: UIView {
+    private let playerLayer = AVPlayerLayer()
 
     var player: AVPlayer? {
         get { playerLayer.player }
@@ -36,7 +35,7 @@ class PlayerUIView: UIView {
     init(player: AVPlayer) {
         super.init(frame: .zero)
         playerLayer.player = player
-        playerLayer.videoGravity = .resizeAspectFill // fills screen like Reels
+        playerLayer.videoGravity = .resizeAspectFill
         layer.addSublayer(playerLayer)
     }
 
@@ -49,3 +48,13 @@ class PlayerUIView: UIView {
         playerLayer.frame = bounds
     }
 }
+#else
+struct PlayerView: View {
+    let player: AVPlayer
+
+    var body: some View {
+        VideoPlayer(player: player)
+            .aspectRatio(contentMode: .fill)
+    }
+}
+#endif

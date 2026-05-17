@@ -6,7 +6,6 @@
 import AVFAudio
 import Foundation
 
-@MainActor
 final class SpeechPlaybackService: NSObject {
     private let synthesizer = AVSpeechSynthesizer()
     private(set) var selectedVoiceDescription = "System Default"
@@ -16,6 +15,7 @@ final class SpeechPlaybackService: NSObject {
         guard trimmed.isEmpty == false else { return }
 
         stop()
+        configurePlaybackSession()
 
         let utterance = AVSpeechUtterance(string: trimmed)
         let voice = preferredVoice()
@@ -33,6 +33,10 @@ final class SpeechPlaybackService: NSObject {
         if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
         }
+
+        #if os(iOS) || os(visionOS)
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        #endif
     }
 
     private func preferredVoice() -> AVSpeechSynthesisVoice? {
@@ -87,5 +91,13 @@ final class SpeechPlaybackService: NSObject {
         }
 
         return "\(voice.name) · \(quality)"
+    }
+
+    private func configurePlaybackSession() {
+        #if os(iOS) || os(visionOS)
+        let audioSession = AVAudioSession.sharedInstance()
+        try? audioSession.setCategory(.playback, mode: .spokenAudio, options: [.duckOthers])
+        try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        #endif
     }
 }

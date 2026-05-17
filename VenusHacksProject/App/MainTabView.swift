@@ -10,11 +10,8 @@ struct MainTabView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            DS.pageBg.ignoresSafeArea()
-
             tabContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 72)
 
             BottomNav(tab: $state.selectedTab)
         }
