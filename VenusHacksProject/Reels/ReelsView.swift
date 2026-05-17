@@ -7,7 +7,6 @@ import SwiftUI
 
 struct ReelsView: View {
     @Bindable var state: AppState
-    @State private var selectedFilter: ReelFilter = .forYou
     @State private var savedReels: Set<String> = []
     @State private var likedReels: Set<String> = []
     @State private var showShareAlert = false
@@ -22,10 +21,6 @@ struct ReelsView: View {
         }
     }
 
-    private var filteredReels: [ScoredReel] {
-        scoredRecommendedReels.filter { selectedFilter.matches($0.reel, profile: personalizationProfile) }
-    }
-
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -33,16 +28,15 @@ struct ReelsView: View {
 
                 VStack(spacing: DS.Space.sm) {
                     header
-                    filterChips
 
                     ScrollView(.vertical, showsIndicators: false) {
                         LazyVStack(spacing: 0) {
-                            ForEach(filteredReels) { scoredReel in
+                            ForEach(scoredRecommendedReels) { scoredReel in
                                 ReelEducationCard(
                                     scoredReel: scoredReel,
                                     isSaved: savedReels.contains(scoredReel.reel.id),
                                     isLiked: likedReels.contains(scoredReel.reel.id),
-                                    cardHeight: max(540, proxy.size.height - 136),
+                                    cardHeight: max(540, proxy.size.height - 100),
                                     onSave: { toggle(scoredReel.reel.id, in: &savedReels) },
                                     onLike: { toggle(scoredReel.reel.id, in: &likedReels) },
                                     onShare: { showShareAlert = true }
@@ -120,38 +114,6 @@ struct ReelsView: View {
         }
         .padding(.horizontal, DS.Space.md)
         .padding(.top, DS.Space.md)
-    }
-
-    private var filterChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DS.Space.xs) {
-                ForEach(ReelFilter.allCases) { filter in
-                    Button {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.8)) {
-                            selectedFilter = filter
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: filter.icon)
-                                .font(.system(size: 11, weight: .bold))
-                            Text(filter.rawValue)
-                                .font(.dsSans(DS.FontSize.sm, weight: .black))
-                        }
-                        .foregroundStyle(selectedFilter == filter ? .white : DS.textH)
-                        .padding(.horizontal, 13)
-                        .padding(.vertical, 9)
-                        .background(selectedFilter == filter ? DS.hotPink : Color.white.opacity(0.42))
-                        .clipShape(Capsule())
-                        .overlay {
-                            Capsule().stroke(Color.white.opacity(0.62), lineWidth: 1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, DS.Space.md)
-            .padding(.vertical, 4)
-        }
     }
 
     private func toggle(_ id: String, in set: inout Set<String>) {
@@ -340,43 +302,6 @@ private struct ReelEducationCard: View {
             }
         }
         .buttonStyle(.plain)
-    }
-}
-
-private enum ReelFilter: String, CaseIterable, Identifiable {
-    case forYou = "For You"
-    case pregnancyHistory = "Pregnancy History"
-    case advocacy = "Advocacy"
-    case postpartum = "Postpartum"
-    case heartHealth = "Heart Health"
-
-    var id: String { rawValue }
-
-    var icon: String {
-        switch self {
-        case .forYou: "sparkles"
-        case .pregnancyHistory: "clock.badge.checkmark"
-        case .advocacy: "megaphone.fill"
-        case .postpartum: "figure.and.child.holdinghands"
-        case .heartHealth: "heart.fill"
-        }
-    }
-
-    func matches(_ reel: PersonalizedLine, profile: PersonalizationProfile) -> Bool {
-        switch self {
-        case .forYou:
-            return true
-        case .pregnancyHistory:
-            return !Set(reel.complicationTags).isDisjoint(with: profile.complicationTags)
-                || reel.stage.contains("pregnancy")
-        case .advocacy:
-            return reel.contentType == "advocacy" || reel.topicTags.contains("advocacy")
-        case .postpartum:
-            return reel.stage.contains("postpartum")
-        case .heartHealth:
-            return reel.topicTags.contains("heart_health")
-                || !Set(reel.riskGroups).isDisjoint(with: profile.riskGroups)
-        }
     }
 }
 
