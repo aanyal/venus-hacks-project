@@ -16,6 +16,7 @@ struct PersonalizationProfile: Codable, Hashable {
     var appointmentTitle: String
     var alertCardTitle: String
     var alertCardText: String
+    
 }
 
 enum PersonalizationEngine {
