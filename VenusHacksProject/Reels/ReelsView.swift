@@ -153,7 +153,7 @@ struct ReelsView: View {
         }
 
         let newPlayer = AVPlayer(url: url)
-        newPlayer.isMuted = true
+        newPlayer.isMuted = false
         newPlayer.automaticallyWaitsToMinimizeStalling = false
         player = newPlayer
         newPlayer.play()
