@@ -15,6 +15,9 @@ final class AppState {
 
     var likedReels: Set<Int> = []
     var savedReels: Set<Int> = []
+    /// Personalized reel feed (string IDs from `PersonalizedLineSeedData`)
+    var likedReelLineIDs: Set<String> = []
+    var savedReelLineIDs: Set<String> = []
 
     var convoOpen = false
     var recording = false
