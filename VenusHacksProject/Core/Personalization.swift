@@ -63,7 +63,7 @@ enum Personalization {
         switch level {
         case .general: return "Preventive check-in reminder"
         case .heartAware: return "Cardiology check-up may be helpful"
-        case .higherAttention: return "Cardiology check-up due soon"
+        case .higherAttention: return "Cardiology check-up due soon."
         }
     }
 
