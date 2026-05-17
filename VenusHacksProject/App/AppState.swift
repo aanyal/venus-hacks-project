@@ -261,7 +261,6 @@ final class AppState {
                     personalizationProfile: healthEnhancedProfile,
                     advocacySummary: Personalization.advocacySummary(for: profile)
                 )
-                homeSummaryStatus = liveAIEnabled ? "AI summary updated." : homeSummaryStatus
             } catch {
                 homeProfileSummary = Self.localHomeProfileSummary(
                     profile: profile,

@@ -143,10 +143,10 @@ struct HomeView: View {
     private var contentStack: some View {
         VStack(alignment: .leading, spacing: 18) {
             appointmentCard
-            summaryCard
             statsSection
-            nextStepsCard
+            summaryCard
             heartHealthCard
+            nextStepsCard
             DisclaimerFooter()
                 .padding(.top, 2)
         }
@@ -357,12 +357,51 @@ struct HomeView: View {
                     .foregroundStyle(Color.homeMuted)
             }
 
+            healthRingsCard
+
             LazyVGrid(columns: statColumns, spacing: 12) {
                 statCard(symbol: "figure.walk", label: "Steps", value: stepsValue, color: .homeTeal, progress: stepsProgress)
                 statCard(symbol: "heart.text.square", label: "Heart Rate", value: heartRateValue, color: .homeRose, progress: heartRateProgress)
                 statCard(symbol: "moon.stars", label: "Sleep", value: sleepValue, color: .homeLavender, progress: sleepProgress)
             }
         }
+    }
+
+    private var healthRingsCard: some View {
+        frostedCard(padding: 16) {
+            HStack(spacing: 16) {
+                healthRings
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Health Rings")
+                        .font(.system(size: 17, weight: .semibold, design: .serif))
+                        .foregroundStyle(Color.homeInk)
+
+                    VStack(alignment: .leading, spacing: 7) {
+                        ringLegend(color: .homeTeal, label: "Move", value: stepsValue)
+                        ringLegend(color: .homeRose, label: "Heart", value: heartRateValue)
+                        ringLegend(color: .homeLavender, label: "Rest", value: sleepValue)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var healthRings: some View {
+        ZStack {
+            healthRing(progress: stepsProgress, color: .homeTeal, size: 86, lineWidth: 9)
+            healthRing(progress: heartRateProgress, color: .homeRose, size: 64, lineWidth: 9)
+            healthRing(progress: sleepProgress, color: .homeLavender, size: 42, lineWidth: 9)
+
+            Image(systemName: "heart.fill")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.homeRose)
+        }
+        .frame(width: 94, height: 94)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Apple Health rings")
     }
 
     private var stepsValue: String {
@@ -456,6 +495,44 @@ struct HomeView: View {
                 .frame(height: 6)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func healthRing(progress: CGFloat, color: Color, size: CGFloat, lineWidth: CGFloat) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.34), lineWidth: lineWidth)
+
+            Circle()
+                .trim(from: 0, to: min(max(progress, 0.04), 1))
+                .stroke(
+                    LinearGradient(
+                        colors: [color.opacity(0.68), color],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+        .frame(width: size, height: size)
+    }
+
+    private func ringLegend(color: Color, label: String, value: String) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color.homeBody)
+
+            Text(value)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.homeInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
         }
     }
 
