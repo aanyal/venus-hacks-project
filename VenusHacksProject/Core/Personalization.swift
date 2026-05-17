@@ -234,11 +234,13 @@ enum Personalization {
         return "Great question. Your doctor can give personalized guidance. Document symptom changes between visits, and never hesitate to ask for clarification — you deserve a full explanation of your care."
     }
 
-    static func reelScore(_ reel: ReelItem, profile: UserProfile, liked: Set<Int>, saved: Set<Int>) -> Int {
+    static func reelScore(_ reel: ReelItem, profile: UserProfile, liked: Set<Int>, saved: Set<Int>, supplementalTags: Set<String> = []) -> Int {
         var score = 0
         let userCats = profile.conditions.map { $0.lowercased() } + [profile.lifeStageLabel.lowercased()]
+        let healthCats = supplementalTags.map(HealthTagMapper.normalized)
         for cat in reel.categories {
             if userCats.contains(where: { cat.lowercased().contains($0) || $0.contains(cat.lowercased()) }) { score += 3 }
+            if healthCats.contains(where: { normalizedCategoryMatch(reelCategory: cat, healthTag: $0) }) { score += 4 }
         }
         if profile.isPregnant && reel.categories.contains("pregnancy") { score += 2 }
         if profile.isPostpartum && reel.categories.contains("postpartum") { score += 2 }
@@ -247,11 +249,27 @@ enum Personalization {
         return score
     }
 
-    static func sortedReels(profile: UserProfile, liked: Set<Int>, saved: Set<Int>) -> [ReelItem] {
+    static func sortedReels(profile: UserProfile, liked: Set<Int>, saved: Set<Int>, supplementalTags: Set<String> = []) -> [ReelItem] {
         MockData.allReels.sorted {
-            reelScore($0, profile: profile, liked: liked, saved: saved) >
-            reelScore($1, profile: profile, liked: liked, saved: saved)
+            reelScore($0, profile: profile, liked: liked, saved: saved, supplementalTags: supplementalTags) >
+            reelScore($1, profile: profile, liked: liked, saved: saved, supplementalTags: supplementalTags)
         }
+    }
+
+    private static func normalizedCategoryMatch(reelCategory: String, healthTag: String) -> Bool {
+        let category = HealthTagMapper.normalized(reelCategory)
+        if category.contains(healthTag) || healthTag.contains(category) { return true }
+
+        let aliases: [String: Set<String>] = [
+            "heart": ["heart health", "elevated heart risk"],
+            "blood pressure": ["blood pressure", "high blood pressure"],
+            "diabetes": ["diabetes", "metabolic"],
+            "pregnancy": ["pregnancy", "general pregnancy"],
+            "advocacy": ["advocacy", "care team"],
+            "symptoms": ["symptoms", "urgent symptoms"],
+            "nutrition": ["nutrition", "diabetes"],
+        ]
+        return aliases[category]?.contains(healthTag) == true
     }
 
     static func showStatAlert(for profile: UserProfile) -> Bool {
